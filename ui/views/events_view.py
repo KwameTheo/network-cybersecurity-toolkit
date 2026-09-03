@@ -34,9 +34,6 @@ class EventsView(ctk.CTkFrame):
         self._create_filter_bar()
         self._create_main_content()
 
-        # Query default events on load
-        self.run_query()
-
     def _create_header(self):
         """Top title and query button."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")

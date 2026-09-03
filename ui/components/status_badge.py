@@ -18,13 +18,15 @@ class StatusBadge(ctk.CTkButton):
         "RUNNING": {"fg": "#2563EB", "text": "#FFFFFF", "label": "TESTING..."},
         "PENDING": {"fg": "#4B5563", "text": "#E5E7EB", "label": "PENDING"},
         "SKIPPED": {"fg": "#374151", "text": "#9CA3AF", "label": "SKIPPED"},
+        "INFO": {"fg": "#2563EB", "text": "#FFFFFF", "label": "INFO"},
     }
 
-    def __init__(self, master, status: str = "PENDING", width: int = 90, height: int = 26, **kwargs):
+    def __init__(self, master, status: str = "PENDING", custom_text: Optional[str] = None, width: int = 90, height: int = 26, **kwargs):
         config = self.COLORS.get(status.upper(), self.COLORS["PENDING"])
+        display_label = custom_text or config["label"]
         super().__init__(
             master,
-            text=config["label"],
+            text=display_label,
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color=config["fg"],
             text_color=config["text"],

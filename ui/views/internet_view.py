@@ -96,9 +96,6 @@ class InternetView(ctk.CTkScrollableFrame):
         self._create_ladder_section()
         self._create_quick_tools()
 
-        # Run initial test on load
-        self.run_full_diagnostics()
-
     def _create_header(self):
         """Top title and run button."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -135,7 +132,7 @@ class InternetView(ctk.CTkScrollableFrame):
 
         self.banner_title = ctk.CTkLabel(
             left_box,
-            text="CONNECTIVITY STATUS: TESTING...",
+            text="CONNECTIVITY STATUS: READY",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=("#1E40AF", "#93C5FD"),
             anchor="w"
@@ -144,7 +141,7 @@ class InternetView(ctk.CTkScrollableFrame):
 
         self.banner_desc = ctk.CTkLabel(
             left_box,
-            text="Executing sequential 6-stage network triage ladder...",
+            text="Click 'Run Full Diagnostics' to test all 6 network and internet connectivity layers.",
             font=ctk.CTkFont(size=12),
             text_color=("#1E3A8A", "#BFDBFE"),
             anchor="w",
@@ -153,7 +150,7 @@ class InternetView(ctk.CTkScrollableFrame):
         )
         self.banner_desc.grid(row=1, column=0, pady=(2, 0), sticky="w")
 
-        self.overall_badge = StatusBadge(self.banner, status="PENDING", width=110, height=32)
+        self.overall_badge = StatusBadge(self.banner, status="INFO", custom_text="READY", width=110, height=32)
         self.overall_badge.grid(row=0, column=1, padx=16, pady=14, sticky="e")
 
     def _create_ladder_section(self):

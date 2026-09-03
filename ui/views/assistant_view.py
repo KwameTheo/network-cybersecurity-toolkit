@@ -36,9 +36,6 @@ class AssistantView(ctk.CTkScrollableFrame):
         self._create_verdict_banner()
         self._create_results_section()
 
-        # Run initial diagnosis on load
-        self.run_diagnosis()
-
     def _create_header(self):
         """Top title and action button."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -123,7 +120,7 @@ class AssistantView(ctk.CTkScrollableFrame):
 
         self.banner_title = ctk.CTkLabel(
             left_box,
-            text="DIAGNOSIS: ANALYZING NETWORK TELEMETRY...",
+            text="DIAGNOSIS: READY",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=("#1E40AF", "#93C5FD"),
             anchor="w"
@@ -132,7 +129,7 @@ class AssistantView(ctk.CTkScrollableFrame):
 
         self.banner_cause = ctk.CTkLabel(
             left_box,
-            text="Running rule-based decision trees against live network telemetry...",
+            text="Select a problem scenario above and click 'Run Diagnosis' to execute rule-based decision trees.",
             font=ctk.CTkFont(size=13),
             text_color=("#1E3A8A", "#BFDBFE"),
             anchor="w",
@@ -141,7 +138,7 @@ class AssistantView(ctk.CTkScrollableFrame):
         )
         self.banner_cause.grid(row=1, column=0, pady=(4, 0), sticky="w")
 
-        self.verdict_badge = StatusBadge(self.banner, status="PENDING", width=130, height=32)
+        self.verdict_badge = StatusBadge(self.banner, status="INFO", custom_text="READY", width=130, height=32)
         self.verdict_badge.grid(row=0, column=1, padx=16, pady=14, sticky="e")
 
     def _create_results_section(self):

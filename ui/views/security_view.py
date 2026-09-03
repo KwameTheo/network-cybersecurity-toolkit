@@ -122,9 +122,6 @@ class SecurityView(ctk.CTkScrollableFrame):
         self._create_filter_bar()
         self._create_cards_container()
 
-        # Run initial audit on load
-        self.run_audit()
-
     def _create_header(self):
         """Top title and audit button."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -161,7 +158,7 @@ class SecurityView(ctk.CTkScrollableFrame):
 
         self.banner_title = ctk.CTkLabel(
             left_box,
-            text="SECURITY POSTURE: AUDITING...",
+            text="SECURITY POSTURE: READY TO AUDIT",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=("#1E40AF", "#93C5FD"),
             anchor="w"
@@ -170,7 +167,7 @@ class SecurityView(ctk.CTkScrollableFrame):
 
         self.banner_desc = ctk.CTkLabel(
             left_box,
-            text="Auditing host defenses against Microsoft Security Baselines and CIS benchmarks...",
+            text="Click 'Run Security Audit' to check Firewall profiles, Antivirus, UAC, Admin accounts, SMBv1, and RDP.",
             font=ctk.CTkFont(size=12),
             text_color=("#1E3A8A", "#BFDBFE"),
             anchor="w",
@@ -180,7 +177,7 @@ class SecurityView(ctk.CTkScrollableFrame):
         self.banner_desc.grid(row=1, column=0, pady=(2, 0), sticky="w")
 
         # Right score badge
-        self.posture_badge = StatusBadge(self.banner, status="PENDING", width=130, height=34)
+        self.posture_badge = StatusBadge(self.banner, status="INFO", custom_text="READY", width=130, height=34)
         self.posture_badge.grid(row=0, column=1, padx=16, pady=14, sticky="e")
 
     def _create_filter_bar(self):
