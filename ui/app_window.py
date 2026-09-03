@@ -7,6 +7,7 @@ and dynamic view switching.
 import customtkinter as ctk
 from typing import Dict
 from ui.views.assistant_view import AssistantView
+from ui.views.autorun_view import AutorunView
 from ui.views.cleaner_view import CleanerView
 from ui.views.dashboard_view import DashboardView
 from ui.views.dns_monitor_view import DnsMonitorView
@@ -87,11 +88,12 @@ class AppWindow(ctk.CTk):
             ("dns", "DNS Query Monitor", 8),
             ("security", "Security Checks", 9),
             ("usb", "USB Device Forensics", 10),
-            ("events", "Event Log Analyzer", 11),
-            ("services", "Windows Services", 12),
-            ("cleaner", "System Cleanup", 13),
-            ("assistant", "Troubleshooting Wizard", 14),
-            ("reports", "Generate Reports", 15),
+            ("autoruns", "Autoruns & Persistence", 11),
+            ("events", "Event Log Analyzer", 12),
+            ("services", "Windows Services", 13),
+            ("cleaner", "System Cleanup", 14),
+            ("assistant", "Troubleshooting Wizard", 15),
+            ("reports", "Generate Reports", 16),
         ]
 
         for key, label, row_idx in nav_items:
@@ -118,7 +120,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=16, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=17, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -127,7 +129,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=17, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=18, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -164,6 +166,9 @@ class AppWindow(ctk.CTk):
 
         # Advanced Feature 7: USB Device History & Forensic Audit
         self.views["usb"] = UsbView(self.content_frame)
+
+        # Advanced Feature 8: Windows Persistence & Autorun Inspector
+        self.views["autoruns"] = AutorunView(self.content_frame)
 
         # Phase 6: Complete Event Log Analyzer
         self.views["events"] = EventsView(self.content_frame)
