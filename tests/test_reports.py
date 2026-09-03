@@ -16,6 +16,7 @@ from core.report_generator import (
     assemble_full_audit_report,
     export_report_csv,
     export_report_json,
+    export_report_pdf,
     export_report_txt,
     get_default_report_options,
 )
@@ -82,6 +83,11 @@ class TestReportGeneratorAndDatabase(unittest.TestCase):
         # CSV export
         csv_path = export_report_csv(report)
         self.assertTrue(os.path.exists(csv_path))
+
+        # PDF export
+        pdf_path = export_report_pdf(report)
+        self.assertTrue(os.path.exists(pdf_path))
+        self.assertGreater(os.path.getsize(pdf_path), 500)
 
 
 if __name__ == "__main__":

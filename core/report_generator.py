@@ -295,3 +295,216 @@ def export_report_csv(report_data: Dict[str, Any], output_path: Optional[str] = 
 
     logger.info(f"Report exported to CSV: {out_file}")
     return str(out_file)
+
+
+def export_report_pdf(report_data: Dict[str, Any], output_path: Optional[str] = None) -> str:
+    """Exports an executive, styled, print-ready PDF audit report."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    meta = report_data.get("metadata", {})
+    file_base = meta.get("filename_base", "audit_report")
+    out_file = Path(output_path) if output_path else REPORTS_DIR / f"{file_base}.pdf"
+
+    doc = SimpleDocTemplate(
+        str(out_file),
+        pagesize=letter,
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+    styles = getSampleStyleSheet()
+
+    # Custom Typography Styles
+    title_style = ParagraphStyle(
+        "DocTitle",
+        parent=styles["Heading1"],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#1E3A8A"),
+        fontName="Helvetica-Bold"
+    )
+    subtitle_style = ParagraphStyle(
+        "DocSub",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor("#4B5563")
+    )
+    section_style = ParagraphStyle(
+        "DocSection",
+        parent=styles["Heading2"],
+        fontSize=12,
+        leading=16,
+        textColor=colors.HexColor("#1E40AF"),
+        fontName="Helvetica-Bold",
+        spaceBefore=10,
+        spaceAfter=5
+    )
+    body_style = ParagraphStyle(
+        "DocBody",
+        parent=styles["Normal"],
+        fontSize=8,
+        leading=11,
+        textColor=colors.HexColor("#1F2937")
+    )
+    badge_style = ParagraphStyle(
+        "BadgeStyle",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+        textColor=colors.white,
+        fontName="Helvetica-Bold",
+        alignment=1
+    )
+
+    story = []
+
+    # Header
+    story.append(Paragraph("NETWORK & CYBERSECURITY AUDIT REPORT", title_style))
+    story.append(Paragraph("IT Support Diagnostics & Defensive Compliance Baseline", subtitle_style))
+    story.append(Spacer(1, 8))
+
+    # Metadata Table
+    sys_info = report_data.get("system_info", {})
+    sec_audit = report_data.get("security_audit", {})
+    meta_data = [
+        [
+            Paragraph("<b>Host Name:</b>", body_style),
+            Paragraph(sys_info.get("computer_name", "--"), body_style),
+            Paragraph("<b>Generated:</b>", body_style),
+            Paragraph(meta.get("generated_at", "--"), body_style)
+        ],
+        [
+            Paragraph("<b>OS Edition:</b>", body_style),
+            Paragraph(sys_info.get("os_edition", "--"), body_style),
+            Paragraph("<b>Operator:</b>", body_style),
+            Paragraph(sys_info.get("username", "--"), body_style)
+        ]
+    ]
+    meta_table = Table(meta_data, colWidths=[75, 195, 75, 195])
+    meta_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F3F4F6")),
+        ("PADDING", (0, 0), (-1, -1), 3),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D1D5DB")),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 8))
+
+    # Posture Banner
+    if sec_audit:
+        score = sec_audit.get("score_percent", 0.0)
+        rating = sec_audit.get("posture_rating", "UNKNOWN")
+        passed = sec_audit.get("passed_checks", 0)
+        total_chk = sec_audit.get("total_checks", 0)
+
+        banner_color = colors.HexColor("#059669") if rating == "SECURE" else (colors.HexColor("#D97706") if rating == "NEEDS_ATTENTION" else colors.HexColor("#DC2626"))
+        banner_data = [[
+            Paragraph(f"OVERALL COMPLIANCE SCORE: {score:.1f}% ({rating}) — Passed {passed}/{total_chk} Baseline Checks", badge_style)
+        ]]
+        banner_table = Table(banner_data, colWidths=[540])
+        banner_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), banner_color),
+            ("PADDING", (0, 0), (-1, -1), 5),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ]))
+        story.append(banner_table)
+        story.append(Spacer(1, 8))
+
+    # 1. Security Checklist Table
+    if sec_audit and sec_audit.get("checks"):
+        story.append(Paragraph("1. Defensive Security Baseline Audit", section_style))
+        chk_rows = [["Status", "Audit Item", "Category", "Finding Summary"]]
+        for c in sec_audit.get("checks", []):
+            verdict = c.get("verdict")
+            v_color = "#166534" if verdict == "PASS" else "#991B1B"
+            v_p = Paragraph(f"<b><font color='{v_color}'>{verdict}</font></b>", body_style)
+            name_p = Paragraph(c.get("name", "--"), body_style)
+            cat_p = Paragraph(c.get("category", "--"), body_style)
+            sum_p = Paragraph(c.get("summary", "--"), body_style)
+            chk_rows.append([v_p, name_p, cat_p, sum_p])
+
+        chk_table = Table(chk_rows, colWidths=[50, 150, 100, 240])
+        chk_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1E3A8A")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("PADDING", (0, 0), (-1, -1), 3),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+        ]))
+        story.append(chk_table)
+        story.append(Spacer(1, 8))
+
+    # 2. Network Configuration Table
+    if "network_adapters" in report_data:
+        story.append(Paragraph("2. Active Network Adapters", section_style))
+        adp_rows = [["Interface Name", "Status", "IPv4 Address", "Default Gateway"]]
+        for a in report_data.get("network_adapters", [])[:5]:
+            st = "Connected" if a.get("is_up") else "Disconnected"
+            adp_rows.append([
+                Paragraph(a.get("name", "--"), body_style),
+                Paragraph(st, body_style),
+                Paragraph(a.get("ipv4", "--"), body_style),
+                Paragraph(a.get("default_gateway") or "None", body_style)
+            ])
+        adp_table = Table(adp_rows, colWidths=[150, 80, 155, 155])
+        adp_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#374151")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("PADDING", (0, 0), (-1, -1), 3),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+        ]))
+        story.append(adp_table)
+        story.append(Spacer(1, 8))
+
+    # 3. Active Listening Ports
+    if "active_sockets" in report_data:
+        story.append(Paragraph("3. Active Listening Services & Ports", section_style))
+        port_rows = [["Proto", "Port", "State", "PID", "Process Name", "Service"]]
+        listen_sockets = [s for s in report_data.get("active_sockets", []) if s.get("state") in ["LISTENING", "ACTIVE (UDP)"]][:8]
+        for s in listen_sockets:
+            port_rows.append([
+                Paragraph(s.get("protocol", "--"), body_style),
+                Paragraph(str(s.get("local_port", "--")), body_style),
+                Paragraph(s.get("state", "--"), body_style),
+                Paragraph(str(s.get("pid") or "--"), body_style),
+                Paragraph(s.get("process_name", "--"), body_style),
+                Paragraph(s.get("service_tag", "--"), body_style)
+            ])
+        if len(port_rows) > 1:
+            p_table = Table(port_rows, colWidths=[45, 45, 80, 45, 165, 160])
+            p_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#374151")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("PADDING", (0, 0), (-1, -1), 3),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+            ]))
+            story.append(p_table)
+            story.append(Spacer(1, 10))
+
+    # Sign-off footer
+    story.append(Spacer(1, 8))
+    sign_data = [
+        [
+            Paragraph("<b>Audited & Verified by:</b> ___________________________________", body_style),
+            Paragraph("<b>Date:</b> ______________", body_style)
+        ]
+    ]
+    sign_table = Table(sign_data, colWidths=[380, 160])
+    sign_table.setStyle(TableStyle([
+        ("PADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(sign_table)
+
+    doc.build(story)
+    logger.info(f"Report exported to PDF: {out_file}")
+    return str(out_file)

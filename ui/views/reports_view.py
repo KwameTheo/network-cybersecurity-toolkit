@@ -19,6 +19,7 @@ from core.report_generator import (
     assemble_full_audit_report,
     export_report_csv,
     export_report_json,
+    export_report_pdf,
     export_report_txt,
     get_default_report_options,
 )
@@ -112,6 +113,17 @@ class ReportsView(ctk.CTkScrollableFrame):
         action_bar.grid(row=3, column=0, columnspan=3, padx=14, pady=(0, 12), sticky="ew")
 
         ctk.CTkLabel(action_bar, text="Export Formats:", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=(0, 8))
+
+        self.export_pdf_btn = ctk.CTkButton(
+            action_bar,
+            text="Export PDF",
+            width=95,
+            height=28,
+            fg_color="#DC2626",
+            hover_color="#B91C1C",
+            command=self._on_export_pdf
+        )
+        self.export_pdf_btn.pack(side="left", padx=4)
 
         self.export_txt_btn = ctk.CTkButton(
             action_bar,
@@ -259,6 +271,7 @@ class ReportsView(ctk.CTkScrollableFrame):
             txt_path = export_report_txt(report_data)
             export_report_json(report_data)
             export_report_csv(report_data)
+            export_report_pdf(report_data)
 
             with open(txt_path, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -314,6 +327,14 @@ class ReportsView(ctk.CTkScrollableFrame):
                     preview_str = f.read()
                 self.report_console.set_text(preview_str)
                 self.tabview.set("Report Text Preview")
+
+    def _on_export_pdf(self):
+        if not self.current_report_data:
+            self.generate_report()
+            return
+        export_report_pdf(self.current_report_data)
+        self.export_pdf_btn.configure(text="Exported!", fg_color="#059669")
+        self.after(1500, lambda: self.export_pdf_btn.configure(text="Export PDF", fg_color="#DC2626"))
 
     def _on_export_txt(self):
         if not self.current_report_data:
