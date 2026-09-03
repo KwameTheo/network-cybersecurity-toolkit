@@ -7,6 +7,7 @@ and dynamic view switching.
 import customtkinter as ctk
 from typing import Dict
 from ui.views.assistant_view import AssistantView
+from ui.views.cleaner_view import CleanerView
 from ui.views.dashboard_view import DashboardView
 from ui.views.dns_monitor_view import DnsMonitorView
 from ui.views.events_view import EventsView
@@ -84,8 +85,9 @@ class AppWindow(ctk.CTk):
             ("security", "Security Checks", 8),
             ("events", "Event Log Analyzer", 9),
             ("services", "Windows Services", 10),
-            ("assistant", "Troubleshooting Wizard", 11),
-            ("reports", "Generate Reports", 12),
+            ("cleaner", "System Cleanup", 11),
+            ("assistant", "Troubleshooting Wizard", 12),
+            ("reports", "Generate Reports", 13),
         ]
 
         for key, label, row_idx in nav_items:
@@ -112,7 +114,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=13, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=14, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -121,7 +123,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=14, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=15, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -155,6 +157,9 @@ class AppWindow(ctk.CTk):
 
         # Advanced Feature 4: Windows Services Manager & Hung Service Fixer
         self.views["services"] = ServicesView(self.content_frame)
+
+        # Advanced Feature 5: System Cleanup & Disk Space Triage
+        self.views["cleaner"] = CleanerView(self.content_frame)
 
         # Phase 7: Complete Security Checks
         self.views["security"] = SecurityView(self.content_frame)
