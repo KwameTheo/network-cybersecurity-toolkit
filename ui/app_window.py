@@ -8,6 +8,7 @@ import customtkinter as ctk
 from typing import Dict
 from ui.views.assistant_view import AssistantView
 from ui.views.dashboard_view import DashboardView
+from ui.views.dns_monitor_view import DnsMonitorView
 from ui.views.events_view import EventsView
 from ui.views.internet_view import InternetView
 from ui.views.network_view import NetworkView
@@ -78,10 +79,11 @@ class AppWindow(ctk.CTk):
             ("wifi", "Wi-Fi Analyzer", 4),
             ("ports", "Ports & Connections", 5),
             ("internet", "Internet & DNS Health", 6),
-            ("security", "Security Checks", 7),
-            ("events", "Event Log Analyzer", 8),
-            ("assistant", "Troubleshooting Wizard", 9),
-            ("reports", "Generate Reports", 10),
+            ("dns", "DNS Query Monitor", 7),
+            ("security", "Security Checks", 8),
+            ("events", "Event Log Analyzer", 9),
+            ("assistant", "Troubleshooting Wizard", 10),
+            ("reports", "Generate Reports", 11),
         ]
 
         for key, label, row_idx in nav_items:
@@ -97,7 +99,7 @@ class AppWindow(ctk.CTk):
                 hover_color=("#D1D5DB", "#374151"),
                 command=lambda k=key: self.select_view(k)
             )
-            btn.grid(row=row_idx, column=0, padx=12, pady=4, sticky="ew")
+            btn.grid(row=row_idx, column=0, padx=12, pady=3, sticky="ew")
             self.nav_buttons[key] = btn
 
         # Theme Selector at bottom
@@ -108,7 +110,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=10, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=12, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -117,7 +119,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=11, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=13, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -142,6 +144,9 @@ class AppWindow(ctk.CTk):
 
         # Phase 5: Complete Internet & DNS Health
         self.views["internet"] = InternetView(self.content_frame)
+
+        # Advanced Feature 2: Live DNS Query Monitor & Threat Inspector
+        self.views["dns"] = DnsMonitorView(self.content_frame)
 
         # Phase 6: Complete Event Log Analyzer
         self.views["events"] = EventsView(self.content_frame)
