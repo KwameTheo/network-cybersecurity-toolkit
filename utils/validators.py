@@ -25,6 +25,18 @@ def is_safe_string(text: str) -> bool:
     return not any(char in FORBIDDEN_SHELL_CHARS for char in text)
 
 
+def sanitize_identifier(text: str) -> Optional[str]:
+    """
+    Sanitizes an alphanumeric identifier (e.g. service name, interface name, process name).
+    """
+    if not text or not isinstance(text, str):
+        return None
+    clean = text.strip()
+    if is_safe_string(clean) and re.match(r"^[a-zA-Z0-9_\-\.\s]+$", clean):
+        return clean
+    return None
+
+
 def validate_ip_address(ip_str: str) -> Tuple[bool, Optional[str]]:
     """
     Validates whether the given string is a valid IPv4 or IPv6 address.

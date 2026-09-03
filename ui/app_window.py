@@ -15,6 +15,7 @@ from ui.views.network_view import NetworkView
 from ui.views.ports_view import PortsView
 from ui.views.reports_view import ReportsView
 from ui.views.security_view import SecurityView
+from ui.views.services_view import ServicesView
 from ui.views.wifi_view import WifiView
 from utils.logger import get_logger
 
@@ -82,8 +83,9 @@ class AppWindow(ctk.CTk):
             ("dns", "DNS Query Monitor", 7),
             ("security", "Security Checks", 8),
             ("events", "Event Log Analyzer", 9),
-            ("assistant", "Troubleshooting Wizard", 10),
-            ("reports", "Generate Reports", 11),
+            ("services", "Windows Services", 10),
+            ("assistant", "Troubleshooting Wizard", 11),
+            ("reports", "Generate Reports", 12),
         ]
 
         for key, label, row_idx in nav_items:
@@ -99,7 +101,7 @@ class AppWindow(ctk.CTk):
                 hover_color=("#D1D5DB", "#374151"),
                 command=lambda k=key: self.select_view(k)
             )
-            btn.grid(row=row_idx, column=0, padx=12, pady=3, sticky="ew")
+            btn.grid(row=row_idx, column=0, padx=12, pady=2, sticky="ew")
             self.nav_buttons[key] = btn
 
         # Theme Selector at bottom
@@ -110,7 +112,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=12, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=13, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -119,7 +121,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=13, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=14, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -150,6 +152,9 @@ class AppWindow(ctk.CTk):
 
         # Phase 6: Complete Event Log Analyzer
         self.views["events"] = EventsView(self.content_frame)
+
+        # Advanced Feature 4: Windows Services Manager & Hung Service Fixer
+        self.views["services"] = ServicesView(self.content_frame)
 
         # Phase 7: Complete Security Checks
         self.views["security"] = SecurityView(self.content_frame)
