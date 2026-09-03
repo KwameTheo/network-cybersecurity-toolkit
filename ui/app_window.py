@@ -18,6 +18,7 @@ from ui.views.reports_view import ReportsView
 from ui.views.security_view import SecurityView
 from ui.views.services_view import ServicesView
 from ui.views.subnet_view import SubnetView
+from ui.views.usb_view import UsbView
 from ui.views.wifi_view import WifiView
 from utils.logger import get_logger
 
@@ -85,11 +86,12 @@ class AppWindow(ctk.CTk):
             ("internet", "Internet & DNS Health", 7),
             ("dns", "DNS Query Monitor", 8),
             ("security", "Security Checks", 9),
-            ("events", "Event Log Analyzer", 10),
-            ("services", "Windows Services", 11),
-            ("cleaner", "System Cleanup", 12),
-            ("assistant", "Troubleshooting Wizard", 13),
-            ("reports", "Generate Reports", 14),
+            ("usb", "USB Device Forensics", 10),
+            ("events", "Event Log Analyzer", 11),
+            ("services", "Windows Services", 12),
+            ("cleaner", "System Cleanup", 13),
+            ("assistant", "Troubleshooting Wizard", 14),
+            ("reports", "Generate Reports", 15),
         ]
 
         for key, label, row_idx in nav_items:
@@ -116,7 +118,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=15, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=16, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -125,7 +127,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=16, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=17, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -157,6 +159,12 @@ class AppWindow(ctk.CTk):
         # Advanced Feature 2: Live DNS Query Monitor & Threat Inspector
         self.views["dns"] = DnsMonitorView(self.content_frame)
 
+        # Phase 7: Complete Security Checks
+        self.views["security"] = SecurityView(self.content_frame)
+
+        # Advanced Feature 7: USB Device History & Forensic Audit
+        self.views["usb"] = UsbView(self.content_frame)
+
         # Phase 6: Complete Event Log Analyzer
         self.views["events"] = EventsView(self.content_frame)
 
@@ -165,9 +173,6 @@ class AppWindow(ctk.CTk):
 
         # Advanced Feature 5: System Cleanup & Disk Space Triage
         self.views["cleaner"] = CleanerView(self.content_frame)
-
-        # Phase 7: Complete Security Checks
-        self.views["security"] = SecurityView(self.content_frame)
 
         # Phase 8: Complete Troubleshooting Assistant
         self.views["assistant"] = AssistantView(self.content_frame)
