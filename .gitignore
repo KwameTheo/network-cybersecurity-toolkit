@@ -18,6 +18,11 @@ reports/
 logs/*.log
 !logs/.gitkeep
 
+# PyInstaller build artifacts
+dist/
+build/
+*.spec
+
 # IDE and OS files
 .vscode/
 .idea/
