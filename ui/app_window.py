@@ -17,6 +17,7 @@ from ui.views.ports_view import PortsView
 from ui.views.reports_view import ReportsView
 from ui.views.security_view import SecurityView
 from ui.views.services_view import ServicesView
+from ui.views.subnet_view import SubnetView
 from ui.views.wifi_view import WifiView
 from utils.logger import get_logger
 
@@ -78,16 +79,17 @@ class AppWindow(ctk.CTk):
         nav_items = [
             ("dashboard", "Dashboard", 2),
             ("network", "Network Diagnostics", 3),
-            ("wifi", "Wi-Fi Analyzer", 4),
-            ("ports", "Ports & Connections", 5),
-            ("internet", "Internet & DNS Health", 6),
-            ("dns", "DNS Query Monitor", 7),
-            ("security", "Security Checks", 8),
-            ("events", "Event Log Analyzer", 9),
-            ("services", "Windows Services", 10),
-            ("cleaner", "System Cleanup", 11),
-            ("assistant", "Troubleshooting Wizard", 12),
-            ("reports", "Generate Reports", 13),
+            ("subnet", "Subnet IP Scanner", 4),
+            ("wifi", "Wi-Fi Analyzer", 5),
+            ("ports", "Ports & Connections", 6),
+            ("internet", "Internet & DNS Health", 7),
+            ("dns", "DNS Query Monitor", 8),
+            ("security", "Security Checks", 9),
+            ("events", "Event Log Analyzer", 10),
+            ("services", "Windows Services", 11),
+            ("cleaner", "System Cleanup", 12),
+            ("assistant", "Troubleshooting Wizard", 13),
+            ("reports", "Generate Reports", 14),
         ]
 
         for key, label, row_idx in nav_items:
@@ -114,7 +116,7 @@ class AppWindow(ctk.CTk):
             text_color=("#6B7280", "#9CA3AF"),
             anchor="w"
         )
-        theme_label.grid(row=14, column=0, padx=20, pady=(10, 2), sticky="w")
+        theme_label.grid(row=15, column=0, padx=20, pady=(10, 2), sticky="w")
 
         self.theme_menu = ctk.CTkOptionMenu(
             self.sidebar_frame,
@@ -123,7 +125,7 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=15, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=16, column=0, padx=20, pady=(0, 16), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -139,6 +141,9 @@ class AppWindow(ctk.CTk):
 
         # Phase 3: Complete Network Diagnostics
         self.views["network"] = NetworkView(self.content_frame)
+
+        # Advanced Feature 6: Subnet IP Scanner & LAN Device Mapper
+        self.views["subnet"] = SubnetView(self.content_frame)
 
         # Advanced Feature 1: Wi-Fi Signal & Channel Analyzer
         self.views["wifi"] = WifiView(self.content_frame)
