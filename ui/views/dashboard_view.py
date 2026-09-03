@@ -166,24 +166,18 @@ class DashboardView(ctk.CTkScrollableFrame):
         self.card_python.grid(row=5, column=1, padx=(5, 10), pady=5, sticky="ew")
 
     def refresh_data(self):
-        """Triggers data collection in a background thread to prevent UI freezing."""
-        self.refresh_btn.configure(state="disabled", text="Refreshing...")
-
-        def worker():
+        """Collects system info and updates GUI widgets immediately."""
+        try:
+            self.refresh_btn.configure(state="disabled", text="Refreshing...")
+            info = collect_system_info()
+            self._apply_data(info)
+        except Exception as e:
+            logger.error(f"Error in Dashboard refresh: {e}", exc_info=True)
+        finally:
             try:
-                info = collect_system_info()
-                try:
-                    self.after(0, lambda: self._apply_data(info))
-                except (RuntimeError, tk.TclError):
-                    pass
-            except Exception as e:
-                logger.error(f"Error in Dashboard refresh: {e}", exc_info=True)
-                try:
-                    self.after(0, lambda: self.refresh_btn.configure(state="normal", text="Refresh System Info"))
-                except (RuntimeError, tk.TclError):
-                    pass
-
-        threading.Thread(target=worker, daemon=True).start()
+                self.refresh_btn.configure(state="normal", text="Refresh System Info")
+            except Exception:
+                pass
 
     def _apply_data(self, info: SystemInfo):
         """Applies collected SystemInfo dataclass to GUI widgets."""
