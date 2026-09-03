@@ -14,6 +14,7 @@ from ui.views.network_view import NetworkView
 from ui.views.ports_view import PortsView
 from ui.views.reports_view import ReportsView
 from ui.views.security_view import SecurityView
+from ui.views.wifi_view import WifiView
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -74,12 +75,13 @@ class AppWindow(ctk.CTk):
         nav_items = [
             ("dashboard", "Dashboard", 2),
             ("network", "Network Diagnostics", 3),
-            ("ports", "Ports & Connections", 4),
-            ("internet", "Internet & DNS Health", 5),
-            ("security", "Security Checks", 6),
-            ("events", "Event Log Analyzer", 7),
-            ("assistant", "Troubleshooting Wizard", 8),
-            ("reports", "Generate Reports", 9),
+            ("wifi", "Wi-Fi Analyzer", 4),
+            ("ports", "Ports & Connections", 5),
+            ("internet", "Internet & DNS Health", 6),
+            ("security", "Security Checks", 7),
+            ("events", "Event Log Analyzer", 8),
+            ("assistant", "Troubleshooting Wizard", 9),
+            ("reports", "Generate Reports", 10),
         ]
 
         for key, label, row_idx in nav_items:
@@ -131,6 +133,9 @@ class AppWindow(ctk.CTk):
 
         # Phase 3: Complete Network Diagnostics
         self.views["network"] = NetworkView(self.content_frame)
+
+        # Advanced Feature 1: Wi-Fi Signal & Channel Analyzer
+        self.views["wifi"] = WifiView(self.content_frame)
 
         # Phase 4: Complete Ports & Connections
         self.views["ports"] = PortsView(self.content_frame)
