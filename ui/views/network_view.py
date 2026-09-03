@@ -454,16 +454,18 @@ class NetworkView(ctk.CTkScrollableFrame):
     # Adapter Refresh & Selection Handling
     # =========================================================================
     def refresh_adapters(self):
-        self.refresh_adp_btn.configure(state="disabled", text="Scanning...")
-
-        def worker():
+        """Scans network adapters and updates UI immediately."""
+        try:
+            self.refresh_adp_btn.configure(state="disabled", text="Scanning...")
             adapters = get_network_adapters()
+            self._apply_adapters(adapters)
+        except Exception as e:
+            logger.error(f"Error refreshing adapters: {e}", exc_info=True)
+        finally:
             try:
-                self.after(0, lambda: self._apply_adapters(adapters))
-            except (RuntimeError, tk.TclError):
+                self.refresh_adp_btn.configure(state="normal", text="Refresh Adapters")
+            except Exception:
                 pass
-
-        threading.Thread(target=worker, daemon=True).start()
 
     def _apply_adapters(self, adapters: List[NetworkAdapter]):
         self.adapters = adapters

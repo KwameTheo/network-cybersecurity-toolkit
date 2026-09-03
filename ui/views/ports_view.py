@@ -198,18 +198,19 @@ class PortsView(ctk.CTkFrame):
         self.count_label.grid(row=4, column=0, padx=14, pady=(0, 5), sticky="w")
 
     def refresh_connections(self):
-        """Scans active sockets in background thread."""
-        self.refresh_btn.configure(state="disabled", text="Scanning...")
-
-        def worker():
+        """Scans active sockets and updates UI immediately."""
+        try:
+            self.refresh_btn.configure(state="disabled", text="Scanning...")
             conns = get_active_connections()
             summary = get_listening_summary()
+            self._apply_data(conns, summary)
+        except Exception as e:
+            logger.error(f"Error refreshing sockets: {e}", exc_info=True)
+        finally:
             try:
-                self.after(0, lambda: self._apply_data(conns, summary))
-            except (RuntimeError, tk.TclError):
+                self.refresh_btn.configure(state="normal", text="Refresh Sockets")
+            except Exception:
                 pass
-
-        threading.Thread(target=worker, daemon=True).start()
 
     def _apply_data(self, connections: List[SocketConnection], summary: dict):
         self.all_connections = connections
