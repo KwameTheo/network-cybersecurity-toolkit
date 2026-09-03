@@ -5,11 +5,11 @@
 ![GUI Framework](https://img.shields.io/badge/GUI-CustomTkinter-blueviolet)
 ![Database](https://img.shields.io/badge/Database-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Unit%20Tests-45%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Unit%20Tests-59%20Passing-brightgreen)
 
 A professional, high-performance **IT Support and Defensive Cybersecurity Toolkit** built natively for Windows 10 and Windows 11. 
 
-Designed for IT support specialists, network administrators, and junior cybersecurity analysts, this application unifies essential host diagnostics, socket inspection, packet routing analysis, Windows Event Log audits, baseline security compliance, and an automated rule-based troubleshooting expert system into a modern dark-mode graphical desktop suite.
+Designed for IT support specialists, network administrators, and junior cybersecurity analysts, this application unifies essential host diagnostics, wireless site-surveys, live DNS threat inspection, socket analysis, packet routing analysis, Windows Event Log audits, baseline security compliance, and an automated rule-based troubleshooting expert system into a modern graphical desktop suite.
 
 ---
 
@@ -19,7 +19,7 @@ The toolkit follows a **Strict Layered Architecture (Model-View-Controller / Eng
 * **Presentation Layer (`ui/`)**: Built with **CustomTkinter** for modern dark/light mode graphics, dynamic progress gauges, and non-blocking responsive threading.
 * **Diagnostic Engine Layer (`core/`)**: Pure, headless Python modules executing network analysis, packet triage, and security audits with zero GUI dependencies (100% automated test coverage).
 * **Cross-Cutting Utilities (`utils/`)**: Anti-injection sanitizers, privilege checkers, rotating audit loggers, and safe subprocess execution helpers.
-* **Persistence Layer (`data/`)**: Zero-config, serverless **SQLite (`toolkit.db`)** database with multi-format exporters (`.txt`, `.json`, `.csv`).
+* **Persistence & Reporting Layer (`data/`, `reports/`)**: Zero-config **SQLite (`toolkit.db`)** database with multi-format exporters (`.pdf`, `.txt`, `.json`, `.csv`).
 
 ```mermaid
 graph TD
@@ -27,12 +27,14 @@ graph TD
         MainWin[Main Window & Sidebar Navigation]
         DashView[1. System Dashboard]
         NetView[2. Network Diagnostics]
-        PortView[3. Ports & Sockets]
-        InternetView[4. Internet Health Ladder]
-        EventView[5. Event Log Analyzer]
-        SecView[6. Security Baseline Audit]
-        AssistView[7. Troubleshooting Wizard]
-        ReportView[8. Reports & Database]
+        WifiView[3. Wi-Fi Signal & Channel Analyzer]
+        PortView[4. Ports & Sockets]
+        InternetView[5. Internet Health Ladder]
+        DnsView[6. Live DNS Query Monitor]
+        SecView[7. Security Baseline Audit]
+        EventView[8. Event Log Analyzer]
+        AssistView[9. Troubleshooting Wizard]
+        ReportView[10. Reports & PDF Exporter]
     end
 
     subgraph Controller_Layer [Controller & Safety Dispatcher]
@@ -44,17 +46,19 @@ graph TD
     subgraph Core_Engine [Diagnostic & Auditing Engines]
         SysEngine[System Info Engine]
         NetEngine[Network & Routing Engine]
+        WifiEngine[Wireless WLAN & BSSID Engine]
         PortEngine[Socket & Process Engine]
         HealthEngine[6-Stage OSI Health Ladder]
-        EventEngine[Event Log Query Engine]
+        DnsMonitorEngine[DNS Telemetry & Shannon Entropy]
         SecEngine[Defensive Baseline Engine]
+        EventEngine[Event Log Query Engine]
         ExpertEngine[Rule-Based Decision Trees]
-        ReportEngine[Multi-Format Exporter Engine]
+        ReportEngine[Multi-Format & ReportLab PDF Exporter]
     end
 
     subgraph Data_OS_Layer [OS & Persistence Layer]
         SQLite[(Local SQLite DB)]
-        WinOS[Windows CLI / PowerShell / WMI / Sockets]
+        WinOS[Windows CLI / PowerShell / WMI / Sockets / WLAN API]
     end
 
     UI_Layer --> Controller_Layer
@@ -79,13 +83,18 @@ graph TD
 * **Traceroute (tracert)**: Hop-by-hop packet path tracing across network routers.
 * **Safe Adapter Controls**: Protected with **Safety Confirmation Modals** to prevent accidental network disconnections during DNS flushing (`ipconfig /flushdns`) or DHCP lease release/renew (`ipconfig /release` and `ipconfig /renew`).
 
-### 3. Active Ports & Socket Analyzer
+### 3. Wi-Fi Signal & Wireless Channel Analyzer
+* **Active Wi-Fi Telemetry**: Reads connected SSID, BSSID (Access Point MAC address), 802.11 radio standard, frequency band (2.4GHz vs 5GHz), link throughput rates (Rx/Tx Mbps), and converted signal level in negative **dBm**.
+* **Nearby Access Point Discovery**: Scans all nearby Wi-Fi broadcast networks, mapping out BSSIDs, channels, and security standards (`WPA2-Personal`, `WPA3-Personal`, or `Open`).
+* **Channel Congestion & Overlap Advisor**: Evaluates 2.4 GHz channel utilization to recommend the cleanest non-overlapping channel (**1, 6, or 11**), and flags non-standard channels causing adjacent-channel interference.
+
+### 4. Active Ports & Socket Analyzer
 * **Socket Audit**: Scans all active TCP/UDP endpoints and classifies socket states (`LISTENING`, `ESTABLISHED`, `TIME_WAIT`, `CLOSE_WAIT`).
 * **Process Mapping**: Maps each open port and network session to its owning Windows **Process ID (PID)** and process name (e.g. `chrome.exe`, `svchost.exe`, `System`).
 * **Cybersecurity Service Tagging**: Automatically tags well-known ports with security service labels (e.g., `445` -> SMB, `135` -> MS-RPC, `3389` -> RDP, `53` -> DNS, `443` -> HTTPS).
 * **Live Search & Protocol Filters**: Search instantaneously by Process, PID, Port, IP, or Service tag.
 
-### 4. Internet & DNS Health Ladder (6-Stage Sequential Triage)
+### 5. Internet & DNS Health Ladder (6-Stage Sequential Triage)
 Automated sequential OSI pipeline testing from local physical layer to application layer:
 1. **Stage 1: Network Adapter & Link** (Detects disconnected adapters and APIPA `169.254.x.x` DHCP failures).
 2. **Stage 2: Default Gateway Reachability** (Tests local subnet router communication).
@@ -95,7 +104,13 @@ Automated sequential OSI pipeline testing from local physical layer to applicati
 6. **Stage 6: Latency & Response Quality** (Evaluates jitter, packet loss, and response times).
 * Output: Actionable **PASS / WARNING / FAIL** verdicts with root-cause explanations.
 
-### 5. Windows Event Log Analyzer
+### 6. Live DNS Query Monitor & Threat Inspector
+* **Resolver Cache Extraction**: Captures all real-time domain lookups across background applications and web browsers.
+* **Shannon Entropy Algorithm**: Measures character randomness to flag **Domain Generation Algorithms (DGA)** used by botnets and ransomware.
+* **DNS Tunneling / Data Exfiltration Detection**: Flags abnormally long domains (>50 characters) and oversized subdomain labels.
+* **High-Risk TLD Scanner**: Automatically flags domains ending in high-spam and malicious TLDs (`.xyz`, `.top`, `.tk`, `.zip`, `.mov`, `.ru`, `.click`, etc.).
+
+### 7. Windows Event Log Analyzer
 * **Targeted Event Querying**: Uses PowerShell `Get-WinEvent` hashtable filtering for fast, read-only analysis.
 * **Critical Categories**:
   * **Service Failures (Event IDs 7000–7043)**: Background service crashes and timeouts.
@@ -104,7 +119,7 @@ Automated sequential OSI pipeline testing from local physical layer to applicati
   * **Authentication Audits (Event IDs 4624 & 4625)**: Successful and failed login attempts.
 * **Detail Inspector**: Select any event row to view the full message, provider name, and user SID.
 
-### 6. Defensive Security Baseline Audit
+### 8. Defensive Security Baseline Audit
 Audits host hardening against CIS benchmarks and Microsoft Security Baselines:
 * **Windows Firewall Profiles**: Audits Domain, Private, and Public profiles (verifies all 3 are active).
 * **Antivirus & Real-Time Protection**: Inspects `root/SecurityCenter2` and Windows Defender engine state.
@@ -114,7 +129,7 @@ Audits host hardening against CIS benchmarks and Microsoft Security Baselines:
 * **Remote Desktop (RDP / Port 3389)**: Checks inbound RDP exposure.
 * **Automated Compliance Score**: Displays overall defensive posture score (0–100%) with step-by-step remediation commands.
 
-### 7. Rule-Based IT Troubleshooting Assistant
+### 9. Rule-Based IT Troubleshooting Assistant
 Automated decision tree expert system diagnosing common IT support issues:
 * **Scenario 1: No Internet Access** (Full stack layer-by-layer triage).
 * **Scenario 2: Wi-Fi Connected but No Internet** (DHCP exhaustion vs. Gateway drop vs. WAN outage).
@@ -122,9 +137,10 @@ Automated decision tree expert system diagnosing common IT support issues:
 * **Scenario 4: Slow Network / High Latency & Jitter** (Isolates local Wi-Fi interference from ISP line degradation).
 * **Output**: Separates **Confirmed Facts** from **Probable Causes** and generates a numbered IT remediation plan.
 
-### 8. Multi-Format Reports & SQLite Persistence
+### 10. Multi-Format Reports & PDF Generation Engine
 * **Section Customization**: Select specific audit sections to include via checkboxes.
 * **Export Formats**:
+  * **Executive PDF (`.pdf`)**: Print-ready, styled executive audit report built with ReportLab, complete with compliance score badges, tables, and technician sign-off boxes.
   * **Plaintext (`.txt`)**: Formatted ASCII document ready for helpdesk tickets (ServiceNow, Jira).
   * **Structured JSON (`.json`)**: Machine-readable export for SIEM tools and APIs.
   * **CSV Spreadsheet (`.csv`)**: Tabular export of open sockets and security checks for Microsoft Excel.
@@ -142,20 +158,24 @@ network-cybersecurity-toolkit/
 ├── CONTRIBUTING.md                 # Contribution guidelines
 ├── SECURITY.md                     # Security policy & defensive standards
 ├── LICENSE                         # MIT License
-├── requirements.txt               # Dependencies (customtkinter, psutil, pillow, etc.)
+├── requirements.txt               # Dependencies (customtkinter, psutil, reportlab, etc.)
 ├── run_toolkit.bat                 # 1-Click double-clickable Windows launcher
+├── setup_new_pc.bat                # Automated setup script for running on new PCs
+├── build_executable.bat            # 1-Click PyInstaller standalone compiler
 ├── app.py                          # Main application entry point
 │
 ├── core/                           # Pure Python Diagnostic & Auditing Engines (Zero GUI code)
 │   ├── __init__.py
 │   ├── system_info.py              # OS, Hardware, RAM, Uptime
 │   ├── network_diagnostics.py      # Adapters, IP, Ping, Traceroute, DNS, DHCP
+│   ├── wifi_analyzer.py            # Wi-Fi Site-Survey, Signal dBm, BSSID, Channel Overlap
 │   ├── port_scanner.py             # Active Sockets, Listening Ports, Process Mapping
 │   ├── dns_internet.py             # 6-Stage Sequential Connectivity Ladder
+│   ├── dns_monitor.py              # DNS Resolver Telemetry, DGA, Shannon Entropy, TLD Flags
 │   ├── event_analyzer.py           # Windows Event Log Query Engine
 │   ├── security_checks.py          # Defensive Baseline Audit & Compliance Scoring
 │   ├── troubleshooting.py          # Rule-Based IT Support Expert System
-│   ├── report_generator.py         # Multi-format Exporters (TXT, JSON, CSV)
+│   ├── report_generator.py         # Multi-format Exporters (PDF, TXT, JSON, CSV)
 │   └── database.py                 # SQLite DB Storage Manager (data/toolkit.db)
 │
 ├── ui/                             # Presentation Layer (CustomTkinter GUI)
@@ -167,16 +187,18 @@ network-cybersecurity-toolkit/
 │   │   ├── status_badge.py         # PASS / WARNING / FAIL Badges
 │   │   ├── log_console.py          # Monospaced Terminal Output Console
 │   │   └── confirmation_dialog.py  # Modal Safety Popups for Disruptive Controls
-│   └── views/                      # Feature Views
+│   └── views/                      # 10 Specialized Feature Views
 │       ├── __init__.py
-│       ├── dashboard_view.py       # Host Overview Dashboard
-│       ├── network_view.py         # Network Diagnostics & Adapter Triage
-│       ├── ports_view.py           # Ports & Socket Analyzer
-│       ├── internet_view.py        # Internet & DNS Health Ladder
-│       ├── events_view.py          # Windows Event Log Analyzer
-│       ├── security_view.py        # Security Baseline Audit
-│       ├── assistant_view.py       # Troubleshooting Expert Wizard
-│       └── reports_view.py         # Report Generator & SQLite History
+│       ├── dashboard_view.py       # 1. System Overview Dashboard
+│       ├── network_view.py         # 2. Network Diagnostics & Triage
+│       ├── wifi_view.py            # 3. Wi-Fi Signal & Channel Analyzer
+│       ├── ports_view.py           # 4. Active Ports & Socket Inspector
+│       ├── internet_view.py        # 5. Internet & DNS Health Ladder
+│       ├── dns_monitor_view.py     # 6. Live DNS Query Monitor & Threat Inspector
+│       ├── security_view.py        # 7. Defensive Security Baseline Audit
+│       ├── events_view.py          # 8. Windows Event Log Analyzer
+│       ├── assistant_view.py       # 9. Rule-Based Troubleshooting Wizard
+│       └── reports_view.py         # 10. Multi-Format Report Builder & History
 │
 ├── utils/                          # Cross-Cutting Utilities & Safety Helpers
 │   ├── __init__.py
@@ -185,17 +207,19 @@ network-cybersecurity-toolkit/
 │   ├── validators.py               # Input Sanitization & Anti-Injection Regex
 │   └── subprocess_runner.py        # Safe Subprocess Execution Wrapper (shell=False)
 │
-└── tests/                          # Automated Unit Test Suite (45 Tests)
+└── tests/                          # Automated Unit Test Suite (59 Tests)
     ├── __init__.py
     ├── test_validators.py          # Injection prevention & IP/domain validator tests
     ├── test_system_info.py         # Host specification & uptime tests
     ├── test_network.py             # Adapter parsing, ping, and DNS tests
+    ├── test_wifi.py                # Wi-Fi site-survey & channel overlap tests
     ├── test_ports.py               # Socket analysis and process mapping tests
     ├── test_internet.py            # 6-stage connectivity ladder tests
+    ├── test_dns_monitor.py         # DNS Shannon entropy & anomaly tests
     ├── test_events.py              # Event Log query & categorization tests
     ├── test_security.py            # Defensive security baseline tests
     ├── test_troubleshooting.py     # Rule-based decision tree tests
-    └── test_reports.py             # SQLite CRUD & TXT/JSON/CSV export tests
+    └── test_reports.py             # SQLite CRUD & PDF/TXT/JSON/CSV export tests
 ```
 
 ---
