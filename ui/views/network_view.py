@@ -5,13 +5,18 @@ Provides adapter inspection, Ping, Traceroute, DNS lookup, and safe DHCP/DNS cac
 
 import threading
 import tkinter as tk
+from tkinter import ttk
 import customtkinter as ctk
 from typing import Dict, List, Optional
 
 from core.network_diagnostics import (
+    ARPEntry,
+    ARPTableResult,
     NetworkAdapter,
     dns_lookup,
+    flush_arp_cache,
     flush_dns_cache,
+    get_arp_table,
     get_network_adapters,
     get_primary_adapter,
     ping_target,
@@ -35,6 +40,9 @@ class NetworkView(ctk.CTkScrollableFrame):
 
         self.adapters: List[NetworkAdapter] = []
         self.selected_adapter: Optional[NetworkAdapter] = None
+        self.arp_entries: List[ARPEntry] = []
+        self.arp_last_result: Optional[ARPTableResult] = None
+        self.selected_arp_entry: Optional[ARPEntry] = None
 
         self._create_header()
         self._create_adapter_section()
@@ -113,17 +121,19 @@ class NetworkView(ctk.CTkScrollableFrame):
         self.card_status.grid(row=2, column=2, padx=(6, 12), pady=(6, 12), sticky="ew")
 
     def _create_tools_tabview(self):
-        """Creates tabbed interface for Ping, DNS/Traceroute, and Adapter Controls."""
+        """Creates tabbed interface for Ping, DNS/Traceroute, ARP Table, and Adapter Controls."""
         self.tabview = ctk.CTkTabview(self, corner_radius=12)
         self.tabview.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
         # Tabs
         self.tab_ping = self.tabview.add("Ping Diagnostic")
         self.tab_dns_trace = self.tabview.add("DNS & Traceroute")
+        self.tab_arp = self.tabview.add("ARP Table (arp -a)")
         self.tab_controls = self.tabview.add("Adapter Controls (DHCP / DNS Flush)")
 
         self._build_ping_tab()
         self._build_dns_trace_tab()
+        self._build_arp_tab()
         self._build_controls_tab()
 
     # =========================================================================
@@ -333,7 +343,366 @@ class NetworkView(ctk.CTkScrollableFrame):
         threading.Thread(target=worker, daemon=True).start()
 
     # =========================================================================
-    # TAB 3: ADAPTER CONTROLS (DHCP / DNS FLUSH)
+    # TAB 3: ARP CACHE TABLE (arp -a)
+    # =========================================================================
+    def _build_arp_tab(self):
+        self.tab_arp.grid_columnconfigure(0, weight=1)
+
+        # 1. Controls Bar
+        ctrl_frame = ctk.CTkFrame(self.tab_arp, fg_color="transparent")
+        ctrl_frame.grid(row=0, column=0, padx=10, pady=(10, 8), sticky="ew")
+        ctrl_frame.grid_columnconfigure(3, weight=1)
+
+        self.arp_query_btn = ctk.CTkButton(
+            ctrl_frame,
+            text="Query ARP Table (arp -a)",
+            width=175,
+            height=32,
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            command=self._run_arp_query
+        )
+        self.arp_query_btn.grid(row=0, column=0, padx=(0, 10), sticky="w")
+
+        ctk.CTkLabel(ctrl_frame, text="Interface:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=0, column=1, padx=(0, 6), sticky="w")
+        self.arp_iface_menu = ctk.CTkOptionMenu(
+            ctrl_frame,
+            values=["All Interfaces"],
+            command=lambda v: self._apply_arp_filters(),
+            width=150,
+            height=32
+        )
+        self.arp_iface_menu.grid(row=0, column=2, padx=(0, 10), sticky="w")
+
+        self.arp_search_entry = ctk.CTkEntry(
+            ctrl_frame,
+            placeholder_text="Search IP, MAC, Vendor, Type...",
+            height=32
+        )
+        self.arp_search_entry.grid(row=0, column=3, padx=(0, 10), sticky="ew")
+        self.arp_search_entry.bind("<KeyRelease>", lambda e: self._apply_arp_filters())
+
+        self.arp_flush_btn = ctk.CTkButton(
+            ctrl_frame,
+            text="Flush ARP Cache",
+            width=130,
+            height=32,
+            fg_color="#DC2626",
+            hover_color="#B91C1C",
+            command=self._confirm_flush_arp
+        )
+        self.arp_flush_btn.grid(row=0, column=4, sticky="e")
+
+        # 2. Filter Segmented Button
+        filter_bar = ctk.CTkFrame(self.tab_arp, fg_color="transparent")
+        filter_bar.grid(row=1, column=0, padx=10, pady=(0, 8), sticky="w")
+
+        ctk.CTkLabel(filter_bar, text="Filter Records:", font=ctk.CTkFont(size=11, weight="bold"), text_color=("#6B7280", "#9CA3AF")).pack(side="left", padx=(0, 8))
+        self.arp_type_filter = ctk.CTkSegmentedButton(
+            filter_bar,
+            values=["All Entries", "Dynamic Only", "Static Only", "Unicast Hosts", "Multicast / Broadcast"],
+            command=lambda v: self._apply_arp_filters()
+        )
+        self.arp_type_filter.set("All Entries")
+        self.arp_type_filter.pack(side="left")
+
+        # 3. Summary Stats Cards
+        cards_frame = ctk.CTkFrame(self.tab_arp, corner_radius=10, fg_color=("#E5E7EB", "#1F2937"))
+        cards_frame.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="ew")
+        cards_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+        self.arp_card_total = InfoCard(cards_frame, title="Total ARP Entries", value="0", subtitle="OS ARP cache")
+        self.arp_card_total.grid(row=0, column=0, padx=(10, 4), pady=10, sticky="ew")
+
+        self.arp_card_dynamic = InfoCard(cards_frame, title="Dynamic Hosts", value="0", subtitle="Active neighbors")
+        self.arp_card_dynamic.grid(row=0, column=1, padx=4, pady=10, sticky="ew")
+
+        self.arp_card_static = InfoCard(cards_frame, title="Static / System", value="0", subtitle="Broadcast / Multicast")
+        self.arp_card_static.grid(row=0, column=2, padx=4, pady=10, sticky="ew")
+
+        self.arp_card_ifaces = InfoCard(cards_frame, title="Interfaces", value="0", subtitle="Active network adapters")
+        self.arp_card_ifaces.grid(row=0, column=3, padx=(4, 10), pady=10, sticky="ew")
+
+        # 4. Table Section
+        table_container = ctk.CTkFrame(self.tab_arp, corner_radius=10, fg_color=("#111827", "#0F172A"))
+        table_container.grid(row=3, column=0, padx=10, pady=(0, 8), sticky="nsew")
+        table_container.grid_columnconfigure(0, weight=1)
+        table_container.grid_rowconfigure(0, weight=1)
+
+        cols = ("iface", "ip", "mac", "type", "vendor", "class")
+        self.arp_tree = ttk.Treeview(
+            table_container,
+            columns=cols,
+            show="headings",
+            selectmode="browse",
+            height=8
+        )
+
+        self.arp_tree.heading("iface", text="Interface IP", anchor="w")
+        self.arp_tree.heading("ip", text="Internet Address (IPv4)", anchor="w")
+        self.arp_tree.heading("mac", text="Physical Address (MAC)", anchor="w")
+        self.arp_tree.heading("type", text="Type", anchor="center")
+        self.arp_tree.heading("vendor", text="Hardware Manufacturer (OUI)", anchor="w")
+        self.arp_tree.heading("class", text="Classification", anchor="w")
+
+        self.arp_tree.column("iface", width=120, minwidth=100, anchor="w")
+        self.arp_tree.column("ip", width=140, minwidth=110, anchor="w")
+        self.arp_tree.column("mac", width=150, minwidth=130, anchor="w")
+        self.arp_tree.column("type", width=90, minwidth=70, anchor="center")
+        self.arp_tree.column("vendor", width=190, minwidth=150, anchor="w")
+        self.arp_tree.column("class", width=140, minwidth=110, anchor="w")
+
+        arp_v_scroll = ttk.Scrollbar(table_container, orient="vertical", command=self.arp_tree.yview)
+        self.arp_tree.configure(yscrollcommand=arp_v_scroll.set)
+
+        self.arp_tree.grid(row=0, column=0, sticky="nsew")
+        arp_v_scroll.grid(row=0, column=1, sticky="ns")
+
+        self.arp_tree.tag_configure("dynamic", foreground="#10B981")
+        self.arp_tree.tag_configure("static", foreground="#9CA3AF")
+        self.arp_tree.tag_configure("multicast", foreground="#60A5FA")
+
+        self.arp_tree.bind("<<TreeviewSelect>>", self._on_arp_selected)
+
+        self.arp_count_label = ctk.CTkLabel(
+            self.tab_arp,
+            text="Displaying 0 ARP entries",
+            font=ctk.CTkFont(size=11),
+            text_color=("#6B7280", "#9CA3AF"),
+            anchor="w"
+        )
+        self.arp_count_label.grid(row=4, column=0, padx=14, pady=(0, 6), sticky="w")
+
+        # 5. Inspector & Action Frame
+        self.arp_insp_frame = ctk.CTkFrame(self.tab_arp, corner_radius=10, fg_color=("#E5E7EB", "#1F2937"))
+        self.arp_insp_frame.grid(row=5, column=0, padx=10, pady=(0, 10), sticky="ew")
+        self.arp_insp_frame.grid_columnconfigure(0, weight=1)
+
+        insp_top = ctk.CTkFrame(self.arp_insp_frame, fg_color="transparent")
+        insp_top.grid(row=0, column=0, padx=14, pady=(10, 4), sticky="ew")
+        insp_top.grid_columnconfigure(0, weight=1)
+
+        self.arp_insp_title = ctk.CTkLabel(
+            insp_top,
+            text="SELECTED ENTRY: NONE (CLICK A ROW ABOVE)",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("#2563EB", "#60A5FA"),
+            anchor="w"
+        )
+        self.arp_insp_title.grid(row=0, column=0, sticky="w")
+
+        action_btns = ctk.CTkFrame(insp_top, fg_color="transparent")
+        action_btns.grid(row=0, column=1, sticky="e")
+
+        self.arp_ping_btn = ctk.CTkButton(
+            action_btns,
+            text="Ping Host",
+            width=85,
+            height=26,
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            state="disabled",
+            command=self._ping_selected_arp_ip
+        )
+        self.arp_ping_btn.pack(side="left", padx=3)
+
+        self.arp_copy_ip_btn = ctk.CTkButton(
+            action_btns,
+            text="Copy IP",
+            width=75,
+            height=26,
+            fg_color="#374151",
+            hover_color="#4B5563",
+            state="disabled",
+            command=self._copy_selected_arp_ip
+        )
+        self.arp_copy_ip_btn.pack(side="left", padx=3)
+
+        self.arp_copy_mac_btn = ctk.CTkButton(
+            action_btns,
+            text="Copy MAC",
+            width=80,
+            height=26,
+            fg_color="#374151",
+            hover_color="#4B5563",
+            state="disabled",
+            command=self._copy_selected_arp_mac
+        )
+        self.arp_copy_mac_btn.pack(side="left", padx=3)
+
+        self.arp_insp_details = ctk.CTkLabel(
+            self.arp_insp_frame,
+            text="Select an entry from the ARP cache table to view MAC vendor details or quickly launch ping diagnostics.",
+            font=ctk.CTkFont(size=11),
+            text_color=("#4B5563", "#D1D5DB"),
+            anchor="w"
+        )
+        self.arp_insp_details.grid(row=1, column=0, padx=14, pady=(0, 10), sticky="w")
+
+        # 6. Raw Console Output
+        self.arp_console = LogConsole(self.tab_arp, title="RAW 'ARP -A' CLI OUTPUT", height=130)
+        self.arp_console.grid(row=6, column=0, padx=10, pady=(0, 10), sticky="ew")
+
+    def _run_arp_query(self):
+        try:
+            self.arp_query_btn.configure(state="disabled", text="Querying...")
+            self.arp_console.set_text("[*] Executing 'arp -a' to read Windows ARP resolver cache...\n")
+        except Exception:
+            pass
+
+        def worker():
+            res = get_arp_table()
+
+            def ui_update():
+                self.arp_last_result = res
+                self.arp_entries = res.entries
+                self.arp_console.set_text(res.raw_output if res.raw_output else "[INFO] No ARP entries returned.")
+
+                # Update cards
+                self.arp_card_total.update_content(value=str(res.total_entries), subtitle="OS ARP cache")
+                self.arp_card_dynamic.update_content(value=str(res.dynamic_count), subtitle="Active neighbors")
+                self.arp_card_static.update_content(value=str(res.static_count), subtitle="System / Broadcast")
+                self.arp_card_ifaces.update_content(value=str(len(res.interfaces)), subtitle="Adapters detected")
+
+                # Update interface dropdown
+                iface_vals = ["All Interfaces"] + res.interfaces
+                self.arp_iface_menu.configure(values=iface_vals)
+                if self.arp_iface_menu.get() not in iface_vals:
+                    self.arp_iface_menu.set("All Interfaces")
+
+                self._apply_arp_filters()
+                self.arp_query_btn.configure(state="normal", text="Query ARP Table (arp -a)")
+
+            try:
+                self.after(0, ui_update)
+            except (RuntimeError, tk.TclError):
+                pass
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _apply_arp_filters(self):
+        iface_sel = self.arp_iface_menu.get()
+        mode = self.arp_type_filter.get()
+        query = self.arp_search_entry.get().strip().lower()
+
+        for item in self.arp_tree.get_children():
+            self.arp_tree.delete(item)
+
+        count = 0
+        for e in self.arp_entries:
+            if iface_sel != "All Interfaces" and e.interface_ip != iface_sel:
+                continue
+
+            if mode == "Dynamic Only" and e.entry_type != "dynamic":
+                continue
+            if mode == "Static Only" and e.entry_type != "static":
+                continue
+            if mode == "Unicast Hosts" and e.is_multicast_or_broadcast:
+                continue
+            if mode == "Multicast / Broadcast" and not e.is_multicast_or_broadcast:
+                continue
+
+            if query:
+                match = (
+                    query in e.ip_address.lower() or
+                    query in e.mac_address.lower() or
+                    query in e.vendor.lower() or
+                    query in e.entry_type.lower() or
+                    query in e.interface_ip.lower()
+                )
+                if not match:
+                    continue
+
+            tag = "static"
+            classification = "Static Entry"
+            if e.entry_type == "dynamic":
+                tag = "dynamic"
+                classification = "Active Host (LAN Neighbor)"
+            elif e.is_multicast_or_broadcast:
+                tag = "multicast"
+                classification = "Multicast / Broadcast"
+
+            self.arp_tree.insert(
+                "",
+                "end",
+                values=(
+                    e.interface_ip,
+                    e.ip_address,
+                    e.mac_address,
+                    e.entry_type.upper(),
+                    e.vendor,
+                    classification
+                ),
+                tags=(tag,)
+            )
+            count += 1
+
+        self.arp_count_label.configure(text=f"Displaying {count} of {len(self.arp_entries)} ARP entries")
+
+    def _on_arp_selected(self, event):
+        sel = self.arp_tree.selection()
+        if not sel:
+            self.selected_arp_entry = None
+            self.arp_ping_btn.configure(state="disabled")
+            self.arp_copy_ip_btn.configure(state="disabled")
+            self.arp_copy_mac_btn.configure(state="disabled")
+            return
+
+        vals = self.arp_tree.item(sel[0], "values")
+        if vals:
+            target_ip = vals[1]
+            entry = next((e for e in self.arp_entries if e.ip_address == target_ip), None)
+            if entry:
+                self.selected_arp_entry = entry
+                self.arp_ping_btn.configure(state="normal")
+                self.arp_copy_ip_btn.configure(state="normal")
+                self.arp_copy_mac_btn.configure(state="normal")
+                self.arp_insp_title.configure(text=f"ENTRY: {entry.ip_address} [{entry.entry_type.upper()}]")
+                self.arp_insp_details.configure(
+                    text=f"• Physical MAC: {entry.mac_address} | Manufacturer: {entry.vendor}\n• Interface Adapter: {entry.interface_ip} | Type: {entry.entry_type.capitalize()}"
+                )
+
+    def _ping_selected_arp_ip(self):
+        if self.selected_arp_entry:
+            ip = self.selected_arp_entry.ip_address
+            self.tabview.set("Ping Diagnostic")
+            self._set_ping_target_and_run(ip)
+
+    def _copy_selected_arp_ip(self):
+        if self.selected_arp_entry:
+            self.clipboard_clear()
+            self.clipboard_append(self.selected_arp_entry.ip_address)
+            self.arp_insp_details.configure(text=f"[COPIED] IPv4 address '{self.selected_arp_entry.ip_address}' copied to clipboard.")
+
+    def _copy_selected_arp_mac(self):
+        if self.selected_arp_entry:
+            self.clipboard_clear()
+            self.clipboard_append(self.selected_arp_entry.mac_address)
+            self.arp_insp_details.configure(text=f"[COPIED] MAC address '{self.selected_arp_entry.mac_address}' copied to clipboard.")
+
+    def _confirm_flush_arp(self):
+        ConfirmationDialog(
+            parent=self.winfo_toplevel(),
+            title="Flush ARP Cache",
+            message="Are you sure you want to flush the local Windows ARP Cache?",
+            warning_detail="This clears all cached IP-to-MAC address mappings ('netsh interface ip delete arpcache' / 'arp -d *'). Requires Administrator privileges.",
+            confirm_text="Flush Cache",
+            is_destructive=True,
+            on_confirm=self._execute_flush_arp
+        )
+
+    def _execute_flush_arp(self):
+        self.arp_console.set_text("[*] Purging Windows ARP cache (netsh interface ip delete arpcache)...\n")
+        def worker():
+            res = flush_arp_cache()
+            def ui_update():
+                self.arp_console.set_text(res.stdout or res.stderr or "[INFO] Flush command executed.")
+                self._run_arp_query()
+            self.after(0, ui_update)
+        threading.Thread(target=worker, daemon=True).start()
+
+    # =========================================================================
+    # TAB 4: ADAPTER CONTROLS (DHCP / DNS FLUSH)
     # =========================================================================
     def _build_controls_tab(self):
         self.tab_controls.grid_columnconfigure(0, weight=1)
@@ -459,6 +828,7 @@ class NetworkView(ctk.CTkScrollableFrame):
             self.refresh_adp_btn.configure(state="disabled", text="Scanning...")
             adapters = get_network_adapters()
             self._apply_adapters(adapters)
+            self._run_arp_query()
         except Exception as e:
             logger.error(f"Error refreshing adapters: {e}", exc_info=True)
         finally:

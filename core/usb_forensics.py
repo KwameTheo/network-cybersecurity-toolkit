@@ -113,14 +113,22 @@ def get_usb_storage_history() -> List[USBStorageDeviceRecord]:
     records: List[USBStorageDeviceRecord] = []
     key_root = r"SYSTEM\CurrentControlSet\Enum\USBSTOR"
 
-    # Identify currently mounted removable drive mountpoints
-    removable_mounts = []
-    try:
-        for p in psutil.disk_partitions(all=True):
-            if "removable" in p.opts.lower() or "cdrom" in p.opts.lower():
-                removable_mounts.append(p.mountpoint)
-    except Exception:
-        pass
+    # Discover active PnP connected disk drive instance IDs
+    active_instances = set()
+    cmd = "Get-PnpDevice -Class DiskDrive -Status OK | Select-Object FriendlyName, InstanceId | ConvertTo-Json"
+    res = run_powershell(cmd)
+    if res.success and res.stdout:
+        import json
+        try:
+            pnp_data = json.loads(res.stdout)
+            if isinstance(pnp_data, dict):
+                pnp_data = [pnp_data]
+            for item in pnp_data:
+                inst_id = (item.get("InstanceId") or "").upper().strip()
+                if inst_id:
+                    active_instances.add(inst_id)
+        except Exception as e:
+            logger.warning(f"Failed to parse active PnP disk drives: {e}")
 
     try:
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_root) as root_key:
@@ -174,6 +182,10 @@ def get_usb_storage_history() -> List[USBStorageDeviceRecord]:
                                     if vid_str in COMMON_USB_VIDS and clean_mfg == "Standard USB Storage Device":
                                         clean_mfg = COMMON_USB_VIDS[vid_str]
 
+                                    # Check connection status against active PnP device instances
+                                    norm_path = inst_path.upper()
+                                    is_conn = any(norm_path.endswith(act) or act in norm_path for act in active_instances)
+
                                     records.append(USBStorageDeviceRecord(
                                         device_name=clean_name,
                                         device_type=dev_type,
@@ -181,7 +193,7 @@ def get_usb_storage_history() -> List[USBStorageDeviceRecord]:
                                         vendor_id=vid_str,
                                         product_id=pid_str,
                                         manufacturer=clean_mfg,
-                                        is_connected=False,  # Evaluated below
+                                        is_connected=is_conn,
                                         mount_point=None,
                                         registry_path=inst_path
                                     ))
@@ -190,7 +202,7 @@ def get_usb_storage_history() -> List[USBStorageDeviceRecord]:
                 except Exception:
                     continue
 
-        logger.info(f"Discovered {len(records)} historical USB storage device artifacts in registry.")
+        logger.info(f"Discovered {len(records)} historical USB storage device artifacts in registry ({sum(1 for r in records if r.is_connected)} active).")
         return records
     except Exception as e:
         logger.error(f"Failed to query USBSTOR registry key: {e}", exc_info=True)
@@ -229,8 +241,21 @@ def get_connected_usb_peripherals() -> List[Dict[str, str]]:
             pid = pid_match.group(1).upper() if pid_match else "--"
             vendor = COMMON_USB_VIDS.get(vid, "Generic Device")
 
+            # Determine peripheral category
+            if "Mass Storage" in name or "USBSTOR" in inst.upper():
+                cat = "Storage Interface"
+            elif "Host Controller" in name or inst.upper().startswith("PCI"):
+                cat = "Host Controller (System)"
+            elif "Root Hub" in name or "ROOT_HUB" in inst.upper():
+                cat = "USB Root Hub (System)"
+            elif "Composite" in name:
+                cat = "Composite Peripheral"
+            else:
+                cat = "USB Peripheral"
+
             peripherals.append({
                 "name": name,
+                "category": cat,
                 "instance_id": inst,
                 "vendor_id": vid,
                 "product_id": pid,

@@ -91,6 +91,34 @@ class DNSLookupResult:
         return asdict(self)
 
 
+@dataclass
+class ARPEntry:
+    interface_ip: str
+    ip_address: str
+    mac_address: str
+    entry_type: str  # "dynamic", "static"
+    vendor: str
+    is_multicast_or_broadcast: bool
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class ARPTableResult:
+    entries: List[ARPEntry]
+    raw_output: str
+    total_entries: int
+    dynamic_count: int
+    static_count: int
+    interfaces: List[str]
+    success: bool
+    error_message: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 # =====================================================================
 # Adapter Discovery & IP Configuration
 # =====================================================================
@@ -493,4 +521,203 @@ def renew_dhcp_lease() -> CommandResult:
     logger.info("Executing DHCP lease renewal (ipconfig /renew)...")
     res = run_command(["ipconfig", "/renew"], timeout_seconds=30)
     logger.info(f"Renew DHCP result: returncode={res.return_code}")
+    return res
+
+
+# =====================================================================
+# IEEE OUI Vendor Resolution & ARP Cache Inspection (arp -a)
+# =====================================================================
+
+OUI_VENDOR_DATABASE: Dict[str, str] = {
+    # Apple
+    "00:03:93": "Apple", "00:05:02": "Apple", "00:0A:27": "Apple", "00:10:FA": "Apple",
+    "00:17:F2": "Apple", "00:1B:63": "Apple", "00:1E:52": "Apple", "00:23:DF": "Apple",
+    "00:26:08": "Apple", "04:0C:CE": "Apple", "04:15:52": "Apple", "04:26:65": "Apple",
+    "04:db:56": "Apple", "0c:4d:e9": "Apple", "14:10:9f": "Apple", "14:20:5e": "Apple",
+    "18:af:61": "Apple", "20:c9:d0": "Apple", "28:cf:e9": "Apple", "3c:22:fb": "Apple",
+    "40:6c:8f": "Apple", "48:d7:05": "Apple", "5c:96:9d": "Apple", "60:03:08": "Apple",
+    "64:b0:a6": "Apple", "70:3e:ac": "Apple", "7c:04:d0": "Apple", "88:66:a5": "Apple",
+    "90:72:40": "Apple", "98:01:a7": "Apple", "a4:83:e7": "Apple", "ac:bc:32": "Apple",
+    "b8:78:26": "Apple", "c8:69:cd": "Apple", "d4:61:9d": "Apple", "dc:a9:04": "Apple",
+    "e0:b9:ba": "Apple", "f0:18:98": "Apple", "f4:0f:24": "Apple", "f8:ff:c2": "Apple",
+
+    # Cisco & Linksys
+    "00:00:0C": "Cisco", "00:01:42": "Cisco", "00:01:C7": "Cisco", "00:02:B9": "Cisco",
+    "00:03:6B": "Cisco", "00:06:53": "Cisco", "00:0C:85": "Cisco", "00:14:69": "Cisco",
+    "00:1A:2B": "Cisco", "00:1B:0D": "Cisco", "00:1D:70": "Cisco", "00:21:55": "Cisco",
+    "00:24:98": "Cisco", "00:26:98": "Cisco", "00:0F:66": "Cisco-Linksys", "00:18:39": "Cisco-Linksys",
+
+    # Intel
+    "00:02:B3": "Intel", "00:03:47": "Intel", "00:04:23": "Intel", "00:0C:F1": "Intel",
+    "00:13:02": "Intel", "00:1B:21": "Intel", "00:21:6A": "Intel", "08:11:96": "Intel",
+    "0c:8b:7d": "Intel", "34:13:e8": "Intel", "3c:6a:9d": "Intel", "48:51:b7": "Intel",
+    "50:76:af": "Intel", "68:05:ca": "Intel", "7c:b0:c2": "Intel", "80:86:f2": "Intel",
+    "9c:29:76": "Intel", "a0:a8:cd": "Intel", "b4:96:91": "Intel", "c8:5b:76": "Intel",
+
+    # Microsoft
+    "00:03:FF": "Microsoft", "00:0D:3A": "Microsoft", "00:12:5A": "Microsoft", "00:15:5D": "Microsoft (Hyper-V)",
+    "00:1D:D8": "Microsoft", "00:25:AE": "Microsoft", "28:18:78": "Microsoft", "60:45:bd": "Microsoft",
+    "70:66:55": "Microsoft", "dc:97:58": "Microsoft (Xbox)",
+
+    # Dell & HP
+    "00:14:22": "Dell", "00:18:8B": "Dell", "00:21:70": "Dell", "00:24:E8": "Dell",
+    "18:66:da": "Dell", "34:e6:d7": "Dell", "44:a8:42": "Dell", "74:86:7a": "Dell",
+    "00:01:E6": "HP", "00:08:02": "HP", "00:0E:7F": "HP", "00:17:A4": "HP",
+    "00:23:7D": "HP", "18:a9:58": "HP", "30:d3:2d": "HP", "3c:d9:2b": "HP",
+
+    # Samsung & Google
+    "00:07:AB": "Samsung", "00:12:47": "Samsung", "00:16:32": "Samsung", "00:21:19": "Samsung",
+    "08:fc:52": "Samsung", "18:67:b0": "Samsung", "24:4b:03": "Samsung", "40:0e:85": "Samsung",
+    "50:01:d9": "Samsung", "78:4b:87": "Samsung", "98:52:b1": "Samsung", "d8:47:32": "Samsung",
+    "00:1A:11": "Google", "3c:5a:37": "Google (Nest/Chromecast)", "54:60:09": "Google",
+    "74:c6:3b": "Google", "a4:77:33": "Google", "f8:8f:ca": "Google",
+
+    # Networking Gear (TP-Link, Netgear, ASUS, Ubiquiti, D-Link)
+    "00:19:E0": "TP-Link", "00:27:19": "TP-Link", "14:cc:20": "TP-Link", "24:4b:fe": "TP-Link",
+    "50:c7:bf": "TP-Link", "70:4f:57": "TP-Link", "98:da:c4": "TP-Link", "c0:06:c3": "TP-Link",
+    "00:09:5B": "Netgear", "00:14:6C": "Netgear", "00:1E:2A": "Netgear", "00:26:F2": "Netgear",
+    "08:bd:43": "Netgear", "20:4e:7f": "Netgear", "9c:3d:cf": "Netgear", "c0:3f:0e": "Netgear",
+    "00:0C:6E": "ASUSTeK", "00:1E:8C": "ASUSTeK", "04:d9:f5": "ASUSTeK", "10:7b:44": "ASUSTeK",
+    "00:15:6D": "Ubiquiti", "04:18:d6": "Ubiquiti", "24:a4:3c": "Ubiquiti", "78:8a:20": "Ubiquiti",
+    "00:05:5D": "D-Link", "00:0D:88": "D-Link", "00:15:E9": "D-Link", "00:1E:58": "D-Link",
+
+    # IoT, Virtualization & Single Board Computers
+    "b8:27:eb": "Raspberry Pi", "dc:a6:32": "Raspberry Pi", "e4:5f:01": "Raspberry Pi",
+    "24:6f:28": "Espressif (ESP32/ESP8266 IoT)", "30:ae:a4": "Espressif (IoT)", "84:cc:a8": "Espressif (IoT)",
+    "00:05:69": "VMware", "00:0C:29": "VMware", "00:50:56": "VMware",
+    "08:00:27": "Oracle VirtualBox",
+    "00:11:32": "Synology NAS", "00:08:9B": "QNAP NAS",
+    "00:08:22": "Inseego / MiFi Gateway",
+    "ac:5e:14": "Huawei Technologies",
+    "9a:e7:e8": "Samsung Electronics",
+}
+
+
+def lookup_mac_vendor(mac_str: str) -> str:
+    """
+    Resolves the hardware vendor/manufacturer for a given MAC address.
+    """
+    if not mac_str or mac_str == "--" or len(mac_str) < 8:
+        return "Unknown Device"
+
+    # Normalize delimiter to colon lowercase (e.g. "ac-5e-14-3f-f8-20" -> "ac:5e:14")
+    clean_mac = re.sub(r"[^a-fA-F0-9]", ":", mac_str.strip()).lower()
+    parts = clean_mac.split(":")
+    if len(parts) >= 3:
+        prefix = f"{parts[0]}:{parts[1]}:{parts[2]}"
+        for oui_key, vendor_name in OUI_VENDOR_DATABASE.items():
+            if oui_key.lower() == prefix:
+                return vendor_name
+
+    # Check for randomized / private MAC addresses (bit 1 of 1st byte set)
+    try:
+        first_byte = int(parts[0], 16)
+        if first_byte & 0b00000010:
+            return "Private / Randomized MAC (Phone/Tablet)"
+    except Exception:
+        pass
+
+    return "Generic Network Device"
+
+
+def get_arp_table(interface_ip: Optional[str] = None) -> ARPTableResult:
+    """
+    Queries Windows 'arp -a' and returns parsed ARP cache entries across
+    all network interfaces (or filtered by interface_ip).
+    Resolves MAC hardware vendors and categorizes dynamic vs static records.
+    """
+    cmd = ["arp", "-a"]
+    if interface_ip:
+        valid, clean_ip, _ = validate_target(interface_ip)
+        if valid:
+            cmd.extend(["-N", clean_ip])
+
+    logger.info(f"Querying ARP cache table ({' '.join(cmd)})...")
+    res = run_command(cmd, timeout_seconds=10)
+    raw = res.stdout if res.stdout else (res.stderr or "")
+
+    if not res.success and not res.stdout:
+        return ARPTableResult(
+            entries=[],
+            raw_output=raw,
+            total_entries=0,
+            dynamic_count=0,
+            static_count=0,
+            interfaces=[],
+            success=False,
+            error_message=res.stderr or "Failed to execute 'arp -a'."
+        )
+
+    entries: List[ARPEntry] = []
+    interfaces: List[str] = []
+    current_interface = "Unknown"
+
+    iface_regex = re.compile(r"Interface:\s*([\d\.]+)", re.IGNORECASE)
+    entry_regex = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-fA-F\-]{17})\s+(\w+)")
+
+    for line in raw.splitlines():
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+
+        iface_match = iface_regex.search(line_clean)
+        if iface_match:
+            current_interface = iface_match.group(1)
+            if current_interface not in interfaces:
+                interfaces.append(current_interface)
+            continue
+
+        entry_match = entry_regex.search(line_clean)
+        if entry_match:
+            ip = entry_match.group(1)
+            raw_mac = entry_match.group(2)
+            entry_type = entry_match.group(3).lower()
+
+            mac = raw_mac.replace("-", ":").upper()
+
+            is_mcast_or_bcast = (
+                ip.startswith("224.") or
+                ip.startswith("239.") or
+                ip == "255.255.255.255" or
+                ip.endswith(".255") or
+                mac == "FF:FF:FF:FF:FF:FF" or
+                mac.startswith("01:00:5E")
+            )
+
+            vendor = lookup_mac_vendor(mac) if not is_mcast_or_bcast else "Multicast / Broadcast"
+
+            entries.append(ARPEntry(
+                interface_ip=current_interface,
+                ip_address=ip,
+                mac_address=mac,
+                entry_type=entry_type,
+                vendor=vendor,
+                is_multicast_or_broadcast=is_mcast_or_bcast
+            ))
+
+    dynamic_cnt = sum(1 for e in entries if e.entry_type == "dynamic")
+    static_cnt = sum(1 for e in entries if e.entry_type == "static")
+
+    return ARPTableResult(
+        entries=entries,
+        raw_output=raw,
+        total_entries=len(entries),
+        dynamic_count=dynamic_cnt,
+        static_count=static_cnt,
+        interfaces=interfaces,
+        success=True
+    )
+
+
+def flush_arp_cache() -> CommandResult:
+    """
+    Flushes the local Windows ARP table cache (netsh interface ip delete arpcache / arp -d *).
+    Requires administrative privileges.
+    """
+    logger.info("Executing ARP cache flush (netsh interface ip delete arpcache)...")
+    res = run_command(["netsh", "interface", "ip", "delete", "arpcache"], timeout_seconds=10)
+    if not res.success:
+        logger.info("Falling back to 'arp -d *'...")
+        res = run_command(["arp", "-d", "*"], timeout_seconds=10)
+    logger.info(f"Flush ARP cache result: returncode={res.return_code}")
     return res

@@ -1,21 +1,48 @@
-MIT License
+PROPRIETARY AND CONFIDENTIAL SOFTWARE LICENSE AGREEMENT
+==============================================================================
+Copyright (c) 2026 Kwame_Theo. All Rights Reserved.
+Product: Network & Cybersecurity IT Support Toolkit (NetSec Toolkit)
+Author & Sole Copyright Holder: Kwame_Theo
+==============================================================================
 
-Copyright (c) 2026 Theo P.
+IMPORTANT - READ CAREFULLY:
+This software, source code, algorithms, architectures, digital assets, and documentation
+(collectively the "Software") are the valuable proprietary intellectual property of Kwame_Theo
+(the "Author and Creator").
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. OWNERSHIP AND INTELLECTUAL PROPERTY:
+The Software is protected by national and international copyright laws, trade secret laws,
+and intellectual property treaties. All title, ownership rights, intellectual property rights,
+and creator attribution in and to the Software shall remain exclusively with Kwame_Theo.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. STRICT PROHIBITION ON COPYING AND FALSE ATTRIBUTION:
+No person, entity, or third party may:
+  (a) Copy, duplicate, reproduce, redistribute, republish, sell, lease, or sublicense the Software,
+      in whole or in part, in source code or binary form.
+  (b) Claim, advertise, represent, or misappropriate authorship, creator status, ownership, or
+      originality of the Software or any portion thereof.
+  (c) Remove, alter, obscure, disguise, or deface any copyright notice, author attribution,
+      cryptographic watermark, digital signature, or proprietary markings embedded within the
+      source code, user interface, metadata, or compiled executable binaries.
+  (d) Create derivative works, modifications, forks, translations, or adaptations based on this
+      Software without express, prior written authorization directly from Kwame_Theo.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. REVERSE ENGINEERING AND DECOMPILATION PROHIBITIONS:
+Except to the extent applicable law expressly prohibits such restriction, you may not decompile,
+disassemble, reverse engineer, unpack, deobfuscate, hook, or tamper with the compiled bytecode,
+native libraries, digital signatures, or integrity verification engines of the Software.
+
+4. DIGITAL INTEGRITY & DMCA COMPLIANCE:
+This Software contains embedded digital provenance watermarks and cryptographic authenticity
+seals. Any unauthorized removal or alteration of this copyright management information constitutes
+a direct violation of DMCA Title 17 U.S.C. § 1202 and international copyright conventions.
+
+5. DISCLAIMER OF WARRANTY:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+==============================================================================
+For licensing inquiries, enterprise permissions, or authorized distribution, contact the Author.
+==============================================================================

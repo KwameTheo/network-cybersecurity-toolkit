@@ -146,8 +146,9 @@ class UsbView(ctk.CTkScrollableFrame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         v_scroll.grid(row=0, column=1, sticky="ns")
 
-        self.tree.tag_configure("storage", foreground="#93C5FD")
-        self.tree.tag_configure("pnp", foreground="#34D399")
+        self.tree.tag_configure("storage_connected", foreground="#4ADE80")  # Bright green for active connected drives
+        self.tree.tag_configure("storage_history", foreground="#93C5FD")    # Soft blue for historical artifacts
+        self.tree.tag_configure("pnp", foreground="#38BDF8")
 
         self.tree.bind("<<TreeviewSelect>>", self._on_device_selected)
 
@@ -196,9 +197,9 @@ class UsbView(ctk.CTkScrollableFrame):
                 self.storage_devices = res.storage_devices
                 self.peripherals = res.connected_peripherals
 
-                self.card_hist.update_content(value=str(res.total_historical_storage_devices), subtitle="Historical devices")
+                self.card_hist.update_content(value=str(res.total_historical_storage_devices), subtitle="Historical in USBSTOR")
                 self.card_live_stor.update_content(value=str(res.currently_connected_storage_devices), subtitle="Currently plugged in")
-                self.card_periph.update_content(value=str(res.currently_connected_usb_peripherals), subtitle="PnP devices active")
+                self.card_periph.update_content(value=str(res.currently_connected_usb_peripherals), subtitle="Active USB class devices")
 
                 self._apply_filters()
                 self.scan_btn.configure(state="normal", text="Scan USB Artifacts")
@@ -231,23 +232,28 @@ class UsbView(ctk.CTkScrollableFrame):
                     if not match:
                         continue
 
+                tag = "storage_connected" if s.is_connected else "storage_history"
+                cat_label = f"🟢 {s.device_type} (Active)" if s.is_connected else f"{s.device_type} (Historical)"
+
                 self.tree.insert(
                     "",
                     "end",
                     values=(
-                        s.device_type,
+                        cat_label,
                         s.device_name,
                         s.manufacturer,
                         s.serial_number,
                         f"{s.vendor_id}:{s.product_id}"
                     ),
-                    tags=("storage",)
+                    tags=(tag,)
                 )
                 count += 1
-            self.count_label.configure(text=f"Displaying {count} of {len(self.storage_devices)} historical USB storage artifacts")
+            connected_count = sum(1 for s in self.storage_devices if s.is_connected)
+            self.count_label.configure(text=f"Displaying {count} of {len(self.storage_devices)} USB storage artifacts ({connected_count} currently plugged in)")
         else:
             for p in self.peripherals:
                 name = p.get("name", "")
+                cat = p.get("category", "USB Peripheral")
                 mfg = p.get("vendor", "")
                 inst = p.get("instance_id", "")
                 vid = p.get("vendor_id", "--")
@@ -259,7 +265,8 @@ class UsbView(ctk.CTkScrollableFrame):
                         query in mfg.lower() or
                         query in inst.lower() or
                         query in vid.lower() or
-                        query in pid.lower()
+                        query in pid.lower() or
+                        query in cat.lower()
                     )
                     if not match:
                         continue
@@ -268,7 +275,7 @@ class UsbView(ctk.CTkScrollableFrame):
                     "",
                     "end",
                     values=(
-                        "Live Peripheral",
+                        cat,
                         name,
                         mfg,
                         inst,
@@ -277,7 +284,7 @@ class UsbView(ctk.CTkScrollableFrame):
                     tags=("pnp",)
                 )
                 count += 1
-            self.count_label.configure(text=f"Displaying {count} of {len(self.peripherals)} live USB peripherals")
+            self.count_label.configure(text=f"Displaying {count} of {len(self.peripherals)} live USB class devices (controllers, hubs, storage & peripherals)")
 
     def _on_device_selected(self, event):
         sel = self.tree.selection()
@@ -285,10 +292,11 @@ class UsbView(ctk.CTkScrollableFrame):
             return
         vals = self.tree.item(sel[0], "values")
         if vals:
+            cat = vals[0]
             name = vals[1]
-            serial_or_inst = vals[3]
             mfg = vals[2]
+            serial_or_inst = vals[3]
             vid_pid = vals[4]
 
             self.insp_title.configure(text=f"USB ARTIFACT: {name}")
-            self.insp_details.configure(text=f"• Serial / Instance: {serial_or_inst}\n• Brand / Manufacturer: {mfg} | Hardware VID:PID: {vid_pid}")
+            self.insp_details.configure(text=f"• Type / Status: {cat}\n• Serial / Instance: {serial_or_inst}\n• Brand / Manufacturer: {mfg} | Hardware VID:PID: {vid_pid}")

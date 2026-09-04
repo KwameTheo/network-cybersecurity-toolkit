@@ -33,6 +33,24 @@ This project adheres to rigorous defensive engineering standards:
 
 ---
 
+## Intellectual Property, Authenticity & Anti-Tampering Standards
+
+The **Network & Cybersecurity IT Support Toolkit** is the original proprietary work of **Kwame_Theo** (All Rights Reserved):
+
+1. **Cryptographic Provenance Seals (`core/integrity_guard.py`)**:
+   * The software enforces an HMAC-SHA256 digital build seal calculated over immutable author credentials (`AUTHOR_NAME = "Kwame_Theo"`), origin UUIDs, and signature watermarks.
+   * Modifying source code constants or attempting to claim unauthorized authorship triggers an immediate cryptographic integrity failure (`INTEGRITY ALERT`).
+2. **Embedded Windows PE Binary Metadata**:
+   * The standalone executable is compiled with embedded Windows resource metadata (`version_info.txt`), declaring Kwame_Theo as the author, copyright owner, and company in PE headers visible in Windows Explorer and Task Manager.
+3. **Anti-Plagiarism & DMCA Compliance**:
+   * Removal or alteration of embedded digital watermarks, copyright notices, or provenance headers is strictly prohibited under DMCA Title 17 U.S.C. § 1202.
+4. **Production Obfuscation & Binary Hardening Options**:
+   * For enterprise distribution requiring zero-decompilation protection:
+     * **PyArmor**: `pyarmor gen --pack dist/NetSec_Toolkit/NetSec_Toolkit.exe app.py` (obfuscates Python bytecode with dynamic memory encryption and anti-debug hooks).
+     * **Nuitka / Cython**: Compiles Python source files directly into native machine code (`.pyd` / `.dll` binaries) eliminating extractable Python bytecode entirely.
+
+---
+
 ## Supported Versions
 
 | Version | Supported          |

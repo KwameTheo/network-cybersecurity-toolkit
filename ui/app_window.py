@@ -6,6 +6,8 @@ and dynamic view switching.
 
 import customtkinter as ctk
 from typing import Dict
+from ui.components.provenance_dialog import ProvenanceDialog
+from core.integrity_guard import assert_authenticity, generate_provenance_seal
 from ui.views.assistant_view import AssistantView
 from ui.views.autorun_view import AutorunView
 from ui.views.cleaner_view import CleanerView
@@ -129,7 +131,21 @@ class AppWindow(ctk.CTk):
             height=28
         )
         self.theme_menu.set("Dark")
-        self.theme_menu.grid(row=18, column=0, padx=20, pady=(0, 16), sticky="ew")
+        self.theme_menu.grid(row=18, column=0, padx=20, pady=(0, 10), sticky="ew")
+
+        # Authenticity & Provenance Seal
+        self.auth_badge = ctk.CTkButton(
+            self.sidebar_frame,
+            text="🛡️ Verified Genuine Build\n© 2026 Kwame_Theo (All Rights Reserved)",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color=("#E5E7EB", "#1E293B"),
+            hover_color=("#D1D5DB", "#334155"),
+            text_color="#10B981",
+            corner_radius=8,
+            height=38,
+            command=self._show_provenance_modal
+        )
+        self.auth_badge.grid(row=19, column=0, padx=12, pady=(0, 14), sticky="ew")
 
     def _create_content_area(self):
         """Creates container frame for dynamic view switching."""
@@ -212,3 +228,7 @@ class AppWindow(ctk.CTk):
 
     def _change_appearance_mode(self, new_mode: str):
         ctk.set_appearance_mode(new_mode)
+
+    def _show_provenance_modal(self):
+        """Displays the Official Certificate of Authenticity & Author Provenance."""
+        ProvenanceDialog(self)

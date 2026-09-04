@@ -34,14 +34,20 @@ class TestUSBForensics(unittest.TestCase):
             self.assertIsNotNone(r.device_name)
             self.assertIsNotNone(r.serial_number)
             self.assertIsNotNone(r.registry_path)
+            self.assertIsInstance(r.is_connected, bool)
 
     def test_run_usb_forensic_audit(self):
         summary = run_usb_forensic_audit()
         self.assertIsInstance(summary, USBForensicsSummary)
         self.assertGreaterEqual(summary.total_historical_storage_devices, 0)
+        self.assertGreaterEqual(summary.currently_connected_storage_devices, 0)
         self.assertGreaterEqual(summary.currently_connected_usb_peripherals, 0)
         self.assertIsInstance(summary.storage_devices, list)
         self.assertIsInstance(summary.connected_peripherals, list)
+        self.assertEqual(
+            summary.currently_connected_storage_devices,
+            sum(1 for s in summary.storage_devices if s.is_connected)
+        )
 
 
 if __name__ == "__main__":

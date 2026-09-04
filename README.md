@@ -4,8 +4,9 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)
 ![GUI Framework](https://img.shields.io/badge/GUI-CustomTkinter-blueviolet)
 ![Database](https://img.shields.io/badge/Database-SQLite3-003B57?logo=sqlite&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Unit%20Tests-79%20Passing-brightgreen)
+![License](https://img.shields.io/badge/License-Proprietary%20%7C%20Kwame__Theo-red)
+![Tests](https://img.shields.io/badge/Unit%20Tests-94%20Passing-brightgreen)
+![Integrity Guard](https://img.shields.io/badge/Integrity-HMAC--SHA256%20Verified-success)
 
 A professional, high-performance **IT Support and Defensive Cybersecurity Toolkit** built natively for Windows 10 and Windows 11. 
 
@@ -88,7 +89,8 @@ graph TD
 * **Interactive ICMP Ping**: Multi-packet ping with packet loss percentage and min/max/average round-trip latency (RTT). Includes 1-click shortcuts for Default Gateway, Google DNS (`8.8.8.8`), Cloudflare (`1.1.1.1`), and Localhost.
 * **DNS Resolver (NSLookup)**: Forward and reverse DNS lookup tools.
 * **Traceroute (tracert)**: Hop-by-hop packet path tracing across network routers.
-* **Safe Adapter Controls**: Protected with **Safety Confirmation Modals** to prevent accidental network disconnections during DNS flushing (`ipconfig /flushdns`) or DHCP lease release/renew (`ipconfig /release` and `ipconfig /renew`).
+* **ARP Cache Table & Inspection (`arp -a`)**: Live inspection and parsing of the Windows ARP resolver cache across all adapters, resolving IEEE OUI hardware manufacturers (*Apple, Cisco, Intel, Huawei, TP-Link, Samsung, etc.*), filtering by interface or entry type (Dynamic Unicast vs Static / Multicast / Broadcast), one-click host pinging / clipboard copy, and administrative ARP cache flushing.
+* **Safe Adapter Controls**: Protected with **Safety Confirmation Modals** to prevent accidental network disconnections during DNS flushing (`ipconfig /flushdns`), ARP cache flushing (`netsh interface ip delete arpcache`), or DHCP lease release/renew (`ipconfig /release` and `ipconfig /renew`).
 
 ### 3. Subnet IP Scanner & LAN Device Mapper
 * **Subnet & Gateway Auto-Detection**: Automatically identifies the local subnet CIDR (e.g. `192.168.100.0/24`) and router IP.
@@ -323,7 +325,7 @@ To enable full access to the Windows `Security` Event Log (logon audit events 46
 
 ## Automated Testing
 
-Run the full automated test suite (45 unit tests covering all engines and validators):
+Run the full automated test suite (94 comprehensive unit tests covering all engines, diagnostics, forensics, and integrity validators):
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover tests
@@ -331,15 +333,21 @@ Run the full automated test suite (45 unit tests covering all engines and valida
 
 ---
 
-## Future Enhancements Roadmap
+## Authorship, Cryptographic Provenance & Anti-Tamper Security
 
-* [ ] **Wi-Fi Channel & Signal Strength Analyzer** (SSID RSSI dBm signal visualization and 2.4GHz/5GHz channel congestion).
-* [ ] **Live Packet Capture & PCAP Sniffer** (Lightweight packet header inspector for DNS and ARP anomalies).
-* [ ] **Windows Defender Real-Time Threat Querying** (Inspecting active quarantined files and Defender definitions).
-* [ ] **PDF Export Engine** (Styled executive PDF reports using ReportLab).
+NetSec Studio includes an integrated **Cryptographic Integrity & Provenance Guard** ([`core/integrity_guard.py`](file:///c:/Users/theop/OneDrive/Documents/Building%20a%20portfolio/core/integrity_guard.py)):
+* **Immutable Authorship**: Hard-coded origin identity (`Kwame_Theo`) protected by HMAC-SHA256 digital seals.
+* **Launch-Time Tamper Assertions**: Validates code originality, runtime state, and provenance signatures on application bootstrap.
+* **Cryptographic Report Watermarking**: All generated audit reports (PDF, TXT, JSON) embed tamper-evident provenance seals verifying creation by Kwame_Theo's authentic software.
+* **Certificate of Authenticity**: Accessible directly from the top toolbar shield badge within the application interface.
+* **Binary Hardening**: Windows PE metadata injection with copyright embedding and `-O2` bytecode stripping for compiled executables.
 
 ---
 
-## License
+## License & Intellectual Property
 
-This project is open-source and licensed under the [MIT License](LICENSE).
+Copyright (c) 2026 **Kwame_Theo.** All Rights Reserved.
+
+This software, its source code, algorithms, architecture, graphics, and documentation are proprietary and confidential intellectual property of **Kwame_Theo.**
+
+Redistribution, reverse engineering, rebranding, claiming creator rights, or removing authorship metadata is strictly prohibited. For complete terms, see the [Proprietary & Anti-Plagiarism License](LICENSE).

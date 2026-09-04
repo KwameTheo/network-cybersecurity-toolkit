@@ -48,13 +48,34 @@ class SystemInfo:
         return asdict(self)
 
 
-def get_windows_edition() -> str:
+def get_os_details() -> Dict[str, str]:
     """
-    Attempts to retrieve the exact Windows Edition (e.g. 'Windows 11 Pro').
-    Uses Windows Registry or PowerShell fallback.
+    Accurately detects OS Name, OS Version (e.g. '11' vs '10'), Build Number (with UBR),
+    and exact Windows Edition (e.g. 'Windows 11 Pro (23H2)').
+    
+    Resolves Microsoft's legacy backward-compatibility behavior where Windows 11
+    identifies as 'Windows 10' or major version 10 in standard Python/platform APIs.
     """
     if platform.system() != "Windows":
-        return platform.system()
+        return {
+            "os_name": platform.system(),
+            "os_version": platform.release(),
+            "os_build": platform.version(),
+            "os_edition": f"{platform.system()} {platform.release()}"
+        }
+
+    build_num = 0
+    try:
+        build_num = sys.getwindowsversion().build
+    except Exception:
+        pass
+
+    product_name = ""
+    display_version = ""
+    release_id = ""
+    edition_id = ""
+    installation_type = ""
+    ubr = None
 
     try:
         import winreg
@@ -62,23 +83,111 @@ def get_windows_edition() -> str:
             winreg.HKEY_LOCAL_MACHINE,
             r"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
         )
-        product_name, _ = winreg.QueryValueEx(key, "ProductName")
-        display_version, _ = winreg.QueryValueEx(key, "DisplayVersion")
+        for var, name in [
+            ("product_name", "ProductName"),
+            ("display_version", "DisplayVersion"),
+            ("release_id", "ReleaseId"),
+            ("edition_id", "EditionID"),
+            ("installation_type", "InstallationType"),
+            ("current_build", "CurrentBuildNumber"),
+            ("ubr", "UBR")
+        ]:
+            try:
+                val, _ = winreg.QueryValueEx(key, name)
+                if var == "product_name" and val:
+                    product_name = str(val).strip()
+                elif var == "display_version" and val:
+                    display_version = str(val).strip()
+                elif var == "release_id" and val and not display_version:
+                    display_version = str(val).strip()
+                elif var == "edition_id" and val:
+                    edition_id = str(val).strip()
+                elif var == "installation_type" and val:
+                    installation_type = str(val).strip()
+                elif var == "current_build" and val and not build_num:
+                    try:
+                        build_num = int(val)
+                    except ValueError:
+                        pass
+                elif var == "ubr" and val is not None:
+                    try:
+                        ubr = int(val)
+                    except ValueError:
+                        pass
+            except Exception:
+                pass
         winreg.CloseKey(key)
-        return f"{product_name} ({display_version})"
     except Exception:
         pass
 
-    # Fallback to platform.win32_edition() if available
-    try:
-        if hasattr(platform, "win32_edition"):
-            edition = platform.win32_edition()
-            if edition:
-                return f"Windows {platform.release()} {edition}"
-    except Exception:
-        pass
+    # Determine Server vs Client
+    is_server = (
+        "server" in installation_type.lower()
+        or "server" in product_name.lower()
+        or "server" in edition_id.lower()
+    )
 
-    return f"Windows {platform.release()}"
+    if is_server:
+        if build_num >= 26100:
+            os_version = "Server 2025"
+        elif build_num >= 20348:
+            os_version = "Server 2022"
+        elif build_num >= 17763:
+            os_version = "Server 2019"
+        elif build_num >= 14393:
+            os_version = "Server 2016"
+        else:
+            os_version = platform.release()
+    elif build_num >= 22000:
+        # Windows 11 builds start at 22000 (21H2=22000, 22H2=22621, 23H2=22631, 24H2=26100+)
+        os_version = "11"
+        if "Windows 10" in product_name:
+            product_name = product_name.replace("Windows 10", "Windows 11")
+        elif not product_name or "Windows" not in product_name:
+            if edition_id:
+                pretty_edition = "Pro" if "Pro" in edition_id else ("Home" if "Core" in edition_id else edition_id)
+                product_name = f"Windows 11 {pretty_edition}"
+            else:
+                product_name = "Windows 11"
+    elif build_num >= 10240:
+        os_version = "10"
+        if not product_name:
+            if edition_id:
+                pretty_edition = "Pro" if "Pro" in edition_id else ("Home" if "Core" in edition_id else edition_id)
+                product_name = f"Windows 10 {pretty_edition}"
+            else:
+                product_name = "Windows 10"
+    else:
+        os_version = platform.release()
+
+    # Format OS Edition
+    if display_version and product_name:
+        os_edition = f"{product_name} ({display_version})"
+    elif product_name:
+        os_edition = product_name
+    else:
+        os_edition = f"Windows {os_version}"
+
+    # Format Full Build (incorporating UBR if available)
+    raw_build = platform.version() or (f"10.0.{build_num}" if build_num else "")
+    if ubr and raw_build and raw_build.count(".") == 2:
+        os_build = f"{raw_build}.{ubr}"
+    else:
+        os_build = raw_build
+
+    return {
+        "os_name": platform.system(),
+        "os_version": os_version,
+        "os_build": os_build,
+        "os_edition": os_edition
+    }
+
+
+def get_windows_edition() -> str:
+    """
+    Attempts to retrieve the exact Windows Edition (e.g. 'Windows 11 Pro (23H2)').
+    """
+    return get_os_details()["os_edition"]
 
 
 def get_cpu_info() -> Dict[str, Any]:
@@ -167,15 +276,15 @@ def collect_system_info() -> SystemInfo:
     cpu = get_cpu_info()
     ram = get_ram_info()
     uptime = get_uptime_info()
-    edition = get_windows_edition()
+    os_details = get_os_details()
 
     info = SystemInfo(
         computer_name=platform.node(),
         username=priv.username,
-        os_name=platform.system(),
-        os_version=platform.release(),
-        os_build=platform.version(),
-        os_edition=edition,
+        os_name=os_details["os_name"],
+        os_version=os_details["os_version"],
+        os_build=os_details["os_build"],
+        os_edition=os_details["os_edition"],
         cpu_model=cpu["model"],
         cpu_physical_cores=cpu["physical_cores"],
         cpu_logical_cores=cpu["logical_cores"],

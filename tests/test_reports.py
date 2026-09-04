@@ -68,6 +68,10 @@ class TestReportGeneratorAndDatabase(unittest.TestCase):
         self.assertIn("system_info", report)
         self.assertIn("network_adapters", report)
         self.assertIn("security_audit", report)
+        self.assertIn("overall_posture", report["security_audit"])
+        self.assertIn("passed_count", report["security_audit"])
+        self.assertIn("total_checks", report["security_audit"])
+        self.assertIn(report["security_audit"]["overall_posture"], ["SECURE", "NEEDS_ATTENTION", "AT_RISK"])
 
         # TXT export
         txt_path = export_report_txt(report)
