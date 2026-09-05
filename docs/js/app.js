@@ -1,5 +1,5 @@
 /**
- * AegisVault Studio - Main Application Logic
+ * NetForge - Main Application Logic
  * Handles catalog rendering, instant search, category filtering, and detail modals.
  */
 

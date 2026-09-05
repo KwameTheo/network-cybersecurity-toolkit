@@ -1,5 +1,5 @@
 /**
- * AegisVault Studio - Software Catalog Database
+ * NetForge - Software Catalog Database
  * Central data registry for all software created by Kwame Theo.
  */
 
@@ -170,7 +170,7 @@ const DEFAULT_SOFTWARE_CATALOG = [
 ];
 
 // Helper functions for persistent catalog storage
-const STORAGE_KEY = "aegisvault_software_catalog";
+const STORAGE_KEY = "netforge_software_catalog";
 
 function getSoftwareCatalog() {
   const customCatalog = localStorage.getItem(STORAGE_KEY);

@@ -1,5 +1,5 @@
 /**
- * AegisVault Studio - Software Creator & Management Studio
+ * NetForge - Software Creator & Management Studio
  * Enables Kwame Theo to add and publish new software creations via a visual UI.
  */
 
