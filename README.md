@@ -2,6 +2,7 @@
 
 ![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)
+[![CI/CD Pipeline](https://github.com/KwameTheo/network-cybersecurity-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/KwameTheo/network-cybersecurity-toolkit/actions/workflows/ci.yml)
 ![GUI Framework](https://img.shields.io/badge/GUI-CustomTkinter-blueviolet)
 ![Database](https://img.shields.io/badge/Database-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![License](https://img.shields.io/badge/License-Proprietary%20%7C%20Kwame__Theo-red)
